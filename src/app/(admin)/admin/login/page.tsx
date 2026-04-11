@@ -97,12 +97,18 @@ export default function AdminLoginPage() {
         throw new Error(data.error || "Registration failed");
       }
 
-      // Store JWT token
+      // Store JWT token directly from registration response
       if (data.token) {
         localStorage.setItem("admin_token", data.token);
+        // Set admin state directly since we have the token
+        const adminStore = useAdminAuthStore.getState();
+        adminStore.checkAuth().then(() => {
+          router.replace("/admin/dashboard");
+        });
+        return;
       }
 
-      // Login with the same credentials
+      // Fallback: login with the same credentials
       await login(email, password);
       router.replace("/admin/dashboard");
     } catch (err) {
@@ -133,7 +139,7 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Form */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl">
+        <div className="glass-panel rounded-xl p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-1">
             {mode === "register" ? "Create Admin Account" : "Sign in"}
           </h2>

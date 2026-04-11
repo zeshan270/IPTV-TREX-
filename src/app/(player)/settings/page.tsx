@@ -84,7 +84,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiListBullet className="h-4 w-4" /> Playlisten
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45] divide-y divide-[#2a2a45]">
+        <div className="rounded-xl glass-card divide-y divide-white/5">
           <div className="p-4">
             <p className={clsx("text-white font-medium mb-1", textBase)}>Aktive Playlist: <span className="text-indigo-400">{playlistName || "Keine"}</span></p>
             <p className={clsx("text-gray-500", textSmall)}>Server: {serverUrl}</p>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiEye className="h-4 w-4" /> Anzeige & Bedienung
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45] divide-y divide-[#2a2a45]">
+        <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiLanguage} title="Schriftgröße" desc="Für bessere Lesbarkeit vergrößern">
             <div className="flex rounded-lg border border-[#2a2a45] overflow-hidden">
               {(["normal", "large", "extra-large"] as const).map((size) => (
@@ -157,7 +157,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiCog6Tooth className="h-4 w-4" /> Player
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45] divide-y divide-[#2a2a45]">
+        <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiSignal} title="Buffer-Größe" desc="Höhere Werte = weniger Puffer-Unterbrechungen">
             <select value={bufferSize} onChange={(e) => setBufferSize(Number(e.target.value))}
               className={clsx("rounded-lg border border-[#2a2a45] bg-[#0f0f1a] px-3 py-2 text-white focus-visible:ring-2 focus-visible:ring-blue-400", textBase)}>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiShieldCheck className="h-4 w-4" /> Kindersicherung
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45] divide-y divide-[#2a2a45]">
+        <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiLockClosed} title="PIN-Sperre" desc={parentalPin ? "PIN ist gesetzt. Tippen zum Ändern." : "4-stellige PIN zum Sperren festlegen"}>
             <button onClick={openPinSetup} tabIndex={0}
               className={clsx("flex items-center gap-2 rounded-lg bg-indigo-500/10 px-4 py-2 font-medium text-indigo-400 hover:bg-indigo-500/20 focus-visible:ring-2 focus-visible:ring-blue-400", textSmall)}>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiTrash className="h-4 w-4" /> Daten
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45]">
+        <div className="rounded-xl glass-card">
           <SettingRow icon={HiTrash} title="Verlauf löschen" desc="Alle zuletzt gesehenen Einträge entfernen">
             <button onClick={() => setShowConfirmClear(true)} tabIndex={0}
               className={clsx("text-red-400 hover:text-red-300 font-medium focus-visible:ring-2 focus-visible:ring-red-400 rounded px-2 py-1", textBase)}>
@@ -221,7 +221,7 @@ export default function SettingsPage() {
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
           <HiDeviceTablet className="h-4 w-4" /> Gerät
         </h2>
-        <div className="rounded-xl bg-[#1a1a2e] border border-[#2a2a45] divide-y divide-[#2a2a45]">
+        <div className="rounded-xl glass-card divide-y divide-white/5">
           <div className="flex items-center justify-between p-4">
             <p className={clsx("text-gray-400", textBase)}>MAC-Adresse</p>
             <p className={clsx("text-white font-mono font-bold", textBase)}>{macAddress || "N/A"}</p>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
 
       {showConfirmLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-[#1a1a2e] border border-[#2a2a45] p-6">
+          <div className="w-full max-w-sm rounded-2xl glass-panel p-6">
             <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Abmelden?</h3>
             <p className={clsx("text-gray-400 mb-6", textBase)}>Du musst dich erneut anmelden.</p>
             <div className="flex gap-3">
@@ -258,7 +258,7 @@ export default function SettingsPage() {
 
       {showConfirmClear && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-[#1a1a2e] border border-[#2a2a45] p-6">
+          <div className="w-full max-w-sm rounded-2xl glass-panel p-6">
             <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Verlauf löschen?</h3>
             <p className={clsx("text-gray-400 mb-6", textBase)}>Alle Einträge werden unwiderruflich gelöscht.</p>
             <div className="flex gap-3">

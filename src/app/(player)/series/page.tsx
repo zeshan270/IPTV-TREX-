@@ -205,7 +205,7 @@ export default function SeriesPage() {
       {/* Series detail modal */}
       {selectedSeries && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#1a1a2e] border border-[#2a2a45] shadow-2xl">
+          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl glass-panel shadow-2xl">
             <button
               onClick={() => {
                 setSelectedSeries(null);
@@ -289,7 +289,7 @@ export default function SeriesPage() {
                         onClick={() =>
                           handlePlayEpisode(ep.id, ep.container_extension)
                         }
-                        className="flex w-full items-center gap-3 rounded-xl bg-[#25253d] p-3 text-left transition-all hover:bg-[#2a2a45]"
+                        className="flex w-full items-center gap-3 rounded-xl glass-row p-3 text-left"
                       >
                         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
                           <HiPlay className="h-5 w-5 text-indigo-400" />

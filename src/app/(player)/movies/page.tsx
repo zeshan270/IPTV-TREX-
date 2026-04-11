@@ -376,7 +376,7 @@ export default function MoviesPage() {
         >
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[#1a1a2e] border-2 border-[#2a2a45] shadow-2xl"
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl glass-panel shadow-2xl"
           >
             {/* Close */}
             <button

@@ -182,11 +182,9 @@ export default function FavoritesPage() {
                   if (e.key === "Enter") router.push(`/player/${fav.id}?type=${fav.streamType}`);
                 }}
                 className={clsx(
-                  "group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-200",
+                  "group relative rounded-2xl overflow-hidden cursor-pointer glass-card",
                   "border-2 border-yellow-500/20 hover:border-yellow-400/60",
-                  "bg-gradient-to-b from-[#1e1e35] to-[#15152a]",
                   "focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:outline-none",
-                  "hover:scale-[1.02] hover:shadow-xl hover:shadow-yellow-500/10",
                   focusedIndex === idx && "ring-4 ring-yellow-400"
                 )}
               >

@@ -51,9 +51,8 @@ export default function ContentCard({
       tabIndex={0}
       role="button"
       className={clsx(
-        "group relative overflow-hidden rounded-xl bg-[#1a1a2e] border-2 border-[#2a2a45] transition-all duration-300 card-hover cursor-pointer",
-        "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none focus-visible:border-blue-400",
-        "hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10",
+        "group relative overflow-hidden rounded-xl glass-card cursor-pointer",
+        "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
         className
       )}
       onClick={onClick}

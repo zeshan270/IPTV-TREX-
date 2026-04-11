@@ -34,9 +34,12 @@ export default function HomePage() {
 
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return "Guten Morgen";
-    if (h < 18) return "Guten Tag";
-    return "Guten Abend";
+    if (h < 6) return "Gute Nacht";
+    if (h < 11) return "Guten Morgen";
+    if (h < 14) return "Guten Mittag";
+    if (h < 18) return "Guten Nachmittag";
+    if (h < 22) return "Guten Abend";
+    return "Gute Nacht";
   };
 
   return (
@@ -97,7 +100,7 @@ export default function HomePage() {
                   onClick={() => router.push(`/player/${item.streamId}?type=${item.streamType}`)}
                   tabIndex={0}
                   className={clsx(
-                    "flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a2e] border border-[#2a2a45] hover:border-indigo-500/50 transition-all group",
+                    "flex-shrink-0 rounded-xl overflow-hidden glass-card group",
                     "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                     isLarge ? "w-52" : "w-40"
                   )}
@@ -140,7 +143,7 @@ export default function HomePage() {
                 onClick={() => router.push(`/player/${item.id}?type=${item.streamType}`)}
                 tabIndex={0}
                 className={clsx(
-                  "flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a2e] border border-[#2a2a45] hover:border-indigo-500/50 transition-all",
+                  "flex-shrink-0 rounded-xl overflow-hidden glass-card",
                   "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                   isLarge ? "w-36" : "w-28"
                 )}
@@ -182,7 +185,7 @@ export default function HomePage() {
                 onClick={() => router.push(`/player/${fav.id}?type=${fav.streamType}`)}
                 tabIndex={0}
                 className={clsx(
-                  "flex-shrink-0 rounded-xl overflow-hidden border-2 border-yellow-500/30 hover:border-yellow-400/60 bg-[#1a1a2e] transition-all",
+                  "flex-shrink-0 rounded-xl overflow-hidden glass-card border-2 border-yellow-500/30 hover:border-yellow-400/60",
                   "focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:outline-none",
                   isLarge ? "w-36" : "w-28"
                 )}

@@ -480,14 +480,12 @@ export default function LiveTVPage() {
                     if (!gridRef.current) return;
                     const items = Array.from(gridRef.current.querySelectorAll("[role='button']")) as HTMLElement[];
                     const currentIdx = items.indexOf(e.currentTarget as HTMLElement);
-                    // Estimate columns from grid
                     const cols = Math.round(gridRef.current.offsetWidth / (items[0]?.offsetWidth || 200));
                     handleGridKeyDown(e, items, currentIdx, cols || 4);
                   }}
                   className={clsx(
-                    "group relative rounded-xl bg-[#1a1a2e] border-2 border-[#2a2a45] p-4 text-left transition-all duration-200 cursor-pointer",
-                    "hover:border-indigo-500/50 hover:bg-[#1a1a2e]/80 hover:shadow-lg hover:shadow-indigo-500/5",
-                    "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none focus-visible:border-blue-400",
+                    "group relative rounded-xl glass-card p-4 text-left cursor-pointer",
+                    "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                     "min-h-[120px]"
                   )}
                 >
