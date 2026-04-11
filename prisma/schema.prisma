@@ -1,37 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "sqlite"
-}
-
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  VIEWER
-}
-
-enum PlaylistType {
-  M3U
-  XTREAM
-}
-
-enum CommandType {
-  ASSIGN_PLAYLIST
-  REMOVE_PLAYLIST
-  UPDATE_APP
-  SEND_MESSAGE
-  RESTART_PLAYER
-  CLEAR_CACHE
-}
-
-enum CommandStatus {
-  PENDING
-  DELIVERED
-  EXECUTED
-  FAILED
+  url      = env("DATABASE_URL")
 }
 
 model AdminUser {
@@ -39,7 +12,7 @@ model AdminUser {
   email        String   @unique
   passwordHash String
   name         String
-  role         Role     @default(VIEWER)
+  role         String   @default("VIEWER")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -63,16 +36,16 @@ model Device {
 }
 
 model Playlist {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
-  type      PlaylistType
+  type      String
   m3uUrl    String?
   serverUrl String?
   username  String?
   password  String?
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   devices DevicePlaylist[]
 }
@@ -91,12 +64,12 @@ model DevicePlaylist {
 }
 
 model DeviceCommand {
-  id         String        @id @default(cuid())
+  id         String    @id @default(cuid())
   deviceId   String
-  command    CommandType
+  command    String
   payload    String?
-  status     CommandStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
+  status     String    @default("PENDING")
+  createdAt  DateTime  @default(now())
   executedAt DateTime?
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
