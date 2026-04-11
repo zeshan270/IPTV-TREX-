@@ -33,7 +33,7 @@ export async function GET(
     });
 
     // Parse JSON payload strings back to objects
-    const parsedCommands = commands.map((cmd) => ({
+    const parsedCommands = commands.map((cmd: { payload: string | null; [key: string]: unknown }) => ({
       ...cmd,
       payload: cmd.payload ? JSON.parse(cmd.payload) : null,
     }));
