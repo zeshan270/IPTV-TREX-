@@ -34,8 +34,8 @@ export async function GET(
     }
 
     const playlists = device.playlists
-      .filter((dp) => dp.playlist.isActive)
-      .map((dp) => ({
+      .filter((dp: any) => dp.playlist.isActive)
+      .map((dp: any) => ({
         id: dp.playlist.id,
         name: dp.playlist.name,
         type: dp.playlist.type,
