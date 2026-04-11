@@ -8,6 +8,38 @@ import type {
   XtreamAuthResponse,
   ParsedM3UResult,
 } from "@/types";
+import { extractCountryFromGroup, type CountryInfo } from "./countries";
+
+// ==================== Response Cache ====================
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
+
+const cache = new Map<string, CacheEntry<unknown>>();
+
+const CACHE_TTL_CATEGORIES = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_STREAMS = 10 * 60 * 1000; // 10 minutes
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > entry.ttl) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function setCache<T>(key: string, data: T, ttl: number): void {
+  cache.set(key, { data, timestamp: Date.now(), ttl });
+}
+
+export function clearCache(): void {
+  cache.clear();
+}
 
 // ==================== Xtream API Client ====================
 
@@ -20,6 +52,10 @@ function buildApiUrl(creds: XtreamCredentials, action?: string): string {
   let url = `${base}/player_api.php?username=${encodeURIComponent(creds.username)}&password=${encodeURIComponent(creds.password)}`;
   if (action) url += `&action=${action}`;
   return url;
+}
+
+function buildCacheKey(creds: XtreamCredentials, action: string, extra?: string): string {
+  return `${creds.serverUrl}:${creds.username}:${action}${extra ? `:${extra}` : ""}`;
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -73,25 +109,36 @@ export async function xtreamLogin(
 export async function fetchLiveCategories(
   creds: XtreamCredentials
 ): Promise<Category[]> {
+  const cacheKey = buildCacheKey(creds, "get_live_categories");
+  const cached = getCached<Category[]>(cacheKey);
+  if (cached) return cached;
+
   const url = buildApiUrl(creds, "get_live_categories");
   const data = await fetchJson<
     { category_id: string; category_name: string; parent_id: number }[]
   >(url);
-  return data.map((c) => ({
+  const result = data.map((c) => ({
     categoryId: c.category_id,
     categoryName: c.category_name,
     parentId: c.parent_id,
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_CATEGORIES);
+  return result;
 }
 
 export async function fetchLiveStreams(
   creds: XtreamCredentials,
   categoryId?: string
 ): Promise<Channel[]> {
+  const cacheKey = buildCacheKey(creds, "get_live_streams", categoryId);
+  const cached = getCached<Channel[]>(cacheKey);
+  if (cached) return cached;
+
   let url = buildApiUrl(creds, "get_live_streams");
   if (categoryId) url += `&category_id=${categoryId}`;
   const data = await fetchJson<Record<string, unknown>[]>(url);
-  return data.map((s) => ({
+  const result = data.map((s) => ({
     id: String(s.stream_id ?? ""),
     name: String(s.name ?? ""),
     logo: String(s.stream_icon ?? ""),
@@ -104,30 +151,44 @@ export async function fetchLiveStreams(
     streamType: "live" as const,
     categoryId: String(s.category_id ?? ""),
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_STREAMS);
+  return result;
 }
 
 export async function fetchVodCategories(
   creds: XtreamCredentials
 ): Promise<Category[]> {
+  const cacheKey = buildCacheKey(creds, "get_vod_categories");
+  const cached = getCached<Category[]>(cacheKey);
+  if (cached) return cached;
+
   const url = buildApiUrl(creds, "get_vod_categories");
   const data = await fetchJson<
     { category_id: string; category_name: string; parent_id: number }[]
   >(url);
-  return data.map((c) => ({
+  const result = data.map((c) => ({
     categoryId: c.category_id,
     categoryName: c.category_name,
     parentId: c.parent_id,
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_CATEGORIES);
+  return result;
 }
 
 export async function fetchVodStreams(
   creds: XtreamCredentials,
   categoryId?: string
 ): Promise<Movie[]> {
+  const cacheKey = buildCacheKey(creds, "get_vod_streams", categoryId);
+  const cached = getCached<Movie[]>(cacheKey);
+  if (cached) return cached;
+
   let url = buildApiUrl(creds, "get_vod_streams");
   if (categoryId) url += `&category_id=${categoryId}`;
   const data = await fetchJson<Record<string, unknown>[]>(url);
-  return data.map((s) => ({
+  const result = data.map((s) => ({
     streamId: Number(s.stream_id ?? 0),
     name: String(s.name ?? ""),
     streamIcon: String(s.stream_icon ?? ""),
@@ -142,30 +203,44 @@ export async function fetchVodStreams(
     releaseDate: s.release_date ? String(s.release_date) : undefined,
     duration: s.duration ? String(s.duration) : undefined,
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_STREAMS);
+  return result;
 }
 
 export async function fetchSeriesCategories(
   creds: XtreamCredentials
 ): Promise<Category[]> {
+  const cacheKey = buildCacheKey(creds, "get_series_categories");
+  const cached = getCached<Category[]>(cacheKey);
+  if (cached) return cached;
+
   const url = buildApiUrl(creds, "get_series_categories");
   const data = await fetchJson<
     { category_id: string; category_name: string; parent_id: number }[]
   >(url);
-  return data.map((c) => ({
+  const result = data.map((c) => ({
     categoryId: c.category_id,
     categoryName: c.category_name,
     parentId: c.parent_id,
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_CATEGORIES);
+  return result;
 }
 
 export async function fetchSeries(
   creds: XtreamCredentials,
   categoryId?: string
 ): Promise<Series[]> {
+  const cacheKey = buildCacheKey(creds, "get_series", categoryId);
+  const cached = getCached<Series[]>(cacheKey);
+  if (cached) return cached;
+
   let url = buildApiUrl(creds, "get_series");
   if (categoryId) url += `&category_id=${categoryId}`;
   const data = await fetchJson<Record<string, unknown>[]>(url);
-  return data.map((s) => ({
+  const result = data.map((s) => ({
     seriesId: Number(s.series_id ?? 0),
     name: String(s.name ?? ""),
     cover: String(s.cover ?? ""),
@@ -178,6 +253,9 @@ export async function fetchSeries(
     categoryId: String(s.category_id ?? ""),
     lastModified: String(s.last_modified ?? ""),
   }));
+
+  setCache(cacheKey, result, CACHE_TTL_STREAMS);
+  return result;
 }
 
 export async function fetchSeriesInfo(
@@ -262,6 +340,107 @@ export function buildSeriesUrl(
   extension: string = "mp4"
 ): string {
   return buildStreamUrl(creds, episodeId, "series", extension);
+}
+
+// ==================== Country Detection & Grouping ====================
+
+/**
+ * Extract country from a group/category title string.
+ * Delegates to the countries utility for pattern matching.
+ */
+export function extractCountry(groupTitle: string): string {
+  const info = extractCountryFromGroup(groupTitle);
+  return info ? `${info.flag} ${info.name}` : "Other";
+}
+
+/**
+ * Group an array of items by detected country from a specified field.
+ * Creates a record of country label -> items array.
+ *
+ * @param items - Array of items (channels, movies, series, categories, etc.)
+ * @param groupField - The field name containing the group/category title to parse
+ * @returns Record with country labels as keys and arrays of items as values
+ */
+export function groupByCountry<T extends Record<string, unknown>>(
+  items: T[],
+  groupField: string
+): Record<string, T[]> {
+  const groups: Record<string, T[]> = {};
+
+  for (const item of items) {
+    const fieldValue = String(item[groupField] ?? "");
+    const country = extractCountry(fieldValue);
+    if (!groups[country]) {
+      groups[country] = [];
+    }
+    groups[country].push(item);
+  }
+
+  return groups;
+}
+
+/**
+ * Group categories by detected country from their category names.
+ * Returns a map of country label -> categories.
+ */
+export function groupCategoriesByCountry(
+  categories: Category[]
+): Record<string, Category[]> {
+  const groups: Record<string, Category[]> = {};
+
+  for (const cat of categories) {
+    const country = extractCountry(cat.categoryName);
+    if (!groups[country]) {
+      groups[country] = [];
+    }
+    groups[country].push(cat);
+  }
+
+  return groups;
+}
+
+// ==================== Parallel Content Fetching ====================
+
+export interface AllContent {
+  liveCategories: Category[];
+  liveStreams: Channel[];
+  vodCategories: Category[];
+  vodStreams: Movie[];
+  seriesCategories: Category[];
+  seriesList: Series[];
+}
+
+/**
+ * Fetch all content (categories + streams) in parallel for faster loading.
+ * Each individual fetch is cached independently.
+ */
+export async function fetchAllContent(
+  creds: XtreamCredentials
+): Promise<AllContent> {
+  const [
+    liveCategories,
+    liveStreams,
+    vodCategories,
+    vodStreams,
+    seriesCategories,
+    seriesList,
+  ] = await Promise.all([
+    fetchLiveCategories(creds),
+    fetchLiveStreams(creds),
+    fetchVodCategories(creds),
+    fetchVodStreams(creds),
+    fetchSeriesCategories(creds),
+    fetchSeries(creds),
+  ]);
+
+  return {
+    liveCategories,
+    liveStreams,
+    vodCategories,
+    vodStreams,
+    seriesCategories,
+    seriesList,
+  };
 }
 
 // ==================== M3U Parser ====================

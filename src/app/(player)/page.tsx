@@ -1,160 +1,206 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { HiTv, HiFilm, HiRectangleStack, HiPlay } from "react-icons/hi2";
-import { useAuthStore, useFavoritesStore, useRecentStore } from "@/lib/store";
-import ContentCard from "@/components/ui/ContentCard";
+import clsx from "clsx";
+import { HiTv, HiFilm, HiRectangleStack, HiStar, HiPlay } from "react-icons/hi2";
+import { useAuthStore, useFavoritesStore, useRecentStore, usePlayerStore, useSettingsStore } from "@/lib/store";
 
 const quickAccess = [
-  {
-    href: "/live",
-    label: "Live TV",
-    icon: HiTv,
-    gradient: "from-blue-600 to-indigo-600",
-    desc: "Watch live channels",
-  },
-  {
-    href: "/movies",
-    label: "Movies",
-    icon: HiFilm,
-    gradient: "from-purple-600 to-pink-600",
-    desc: "Browse movies",
-  },
-  {
-    href: "/series",
-    label: "Series",
-    icon: HiRectangleStack,
-    gradient: "from-orange-600 to-red-600",
-    desc: "TV series & shows",
-  },
+  { href: "/live", label: "Live TV", icon: HiTv, emoji: "📺", gradient: "from-blue-500 to-cyan-500" },
+  { href: "/movies", label: "Filme", icon: HiFilm, emoji: "🎬", gradient: "from-purple-500 to-pink-500" },
+  { href: "/series", label: "Serien", icon: HiRectangleStack, emoji: "🎭", gradient: "from-orange-500 to-red-500" },
+  { href: "/favorites", label: "⭐ Favoriten", icon: HiStar, emoji: "⭐", gradient: "from-yellow-400 to-amber-500" },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const credentials = useAuthStore((s) => s.credentials);
-  const recentItems = useRecentStore((s) => s.items);
-  const favorites = useFavoritesStore((s) => s.favorites);
+  const { playlistName } = useAuthStore();
+  const { favorites } = useFavoritesStore();
+  const { items: recentItems } = useRecentStore();
+  const { positions } = usePlayerStore();
+  const { fontSize, remoteControlMode } = useSettingsStore();
 
-  const username =
-    credentials && "username" in credentials ? credentials.username : "User";
+  const isLarge = fontSize === "large" || fontSize === "extra-large" || remoteControlMode;
+
+  // Continue watching: items with saved position < 95%
+  const continueWatching = Object.entries(positions)
+    .filter(([, pos]) => pos.duration > 0 && (pos.position / pos.duration) < 0.95 && (pos.position / pos.duration) > 0.02)
+    .sort(([, a], [, b]) => b.updatedAt - a.updatedAt)
+    .slice(0, 10)
+    .map(([streamId, pos]) => {
+      const recent = recentItems.find((r) => r.id === streamId);
+      return { streamId, ...pos, name: recent?.name || `Stream ${streamId}`, logo: recent?.logo, streamType: recent?.streamType || "live" };
+    });
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Guten Morgen";
+    if (h < 18) return "Guten Tag";
+    return "Guten Abend";
+  };
 
   return (
-    <div className="min-h-full p-4 md:p-6 lg:p-8">
+    <div className="min-h-full p-4 md:p-6 lg:p-8 overflow-y-auto">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 border border-[#2a2a45] p-6 md:p-8 mb-8">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZyIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNnKSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPg==')] opacity-50" />
-        <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-            Welcome back, <span className="gradient-text">{username}</span>
-          </h1>
-          <p className="text-gray-400 text-sm md:text-base">
-            Your premium streaming experience awaits
+      <div className="mb-8">
+        <h1 className={clsx("font-black text-white mb-1", isLarge ? "text-4xl" : "text-2xl")}>
+          {greeting()} 👋
+        </h1>
+        {playlistName && (
+          <p className={clsx("text-indigo-400 font-medium", isLarge ? "text-xl" : "text-base")}>
+            📡 {playlistName}
           </p>
-        </div>
+        )}
       </div>
 
-      {/* Quick Access */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-4">Quick Access</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {quickAccess.map((item) => (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${item.gradient} p-5 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-lg`}
-            >
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-              <div className="relative z-10 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
-                  <item.icon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-white">
-                    {item.label}
-                  </h3>
-                  <p className="text-sm text-white/60">{item.desc}</p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* Quick Access Cards */}
+      <div className={clsx("grid gap-4 mb-8", isLarge ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4")}>
+        {quickAccess.map((item) => (
+          <button
+            key={item.href}
+            onClick={() => router.push(item.href)}
+            tabIndex={0}
+            className={clsx(
+              "group relative overflow-hidden rounded-2xl transition-all duration-200",
+              "hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]",
+              "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+              `bg-gradient-to-br ${item.gradient}`,
+              isLarge ? "p-8" : "p-6",
+              item.href === "/favorites" && "ring-2 ring-yellow-400/50"
+            )}
+          >
+            <div className="flex flex-col items-center text-center">
+              <span className={clsx("mb-2", isLarge ? "text-5xl" : "text-4xl")}>{item.emoji}</span>
+              <h3 className={clsx("font-black text-white", isLarge ? "text-2xl" : "text-lg")}>{item.label}</h3>
+              {item.href === "/favorites" && favorites.length > 0 && (
+                <span className="mt-1 bg-white/20 text-white px-3 py-0.5 rounded-full text-sm font-bold">
+                  {favorites.length} gespeichert
+                </span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Continue Watching */}
+      {continueWatching.length > 0 && (
+        <section className="mb-8">
+          <h2 className={clsx("font-bold text-white mb-4 flex items-center gap-2", isLarge ? "text-2xl" : "text-lg")}>
+            ▶️ Weiterschauen
+          </h2>
+          <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
+            {continueWatching.map((item) => {
+              const progress = item.duration > 0 ? (item.position / item.duration) * 100 : 0;
+              return (
+                <button
+                  key={item.streamId}
+                  onClick={() => router.push(`/player/${item.streamId}?type=${item.streamType}`)}
+                  tabIndex={0}
+                  className={clsx(
+                    "flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a2e] border border-[#2a2a45] hover:border-indigo-500/50 transition-all group",
+                    "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                    isLarge ? "w-52" : "w-40"
+                  )}
+                >
+                  <div className="relative aspect-video bg-[#25253d] flex items-center justify-center overflow-hidden">
+                    {item.logo ? (
+                      <img src={item.logo} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <HiPlay className="h-8 w-8 text-gray-600" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-all">
+                      <HiPlay className="h-10 w-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    {/* Progress bar */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/50">
+                      <div className="h-full bg-indigo-500 rounded-r-full" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <p className={clsx("font-medium text-white truncate", isLarge ? "text-base" : "text-xs")}>{item.name}</p>
+                    <p className="text-xs text-gray-500">{Math.round(progress)}% gesehen</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Recently Watched */}
       {recentItems.length > 0 && (
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">
-              Recently Watched
-            </h2>
-          </div>
+          <h2 className={clsx("font-bold text-white mb-4 flex items-center gap-2", isLarge ? "text-2xl" : "text-lg")}>
+            🕐 Zuletzt gesehen
+          </h2>
           <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
-            {recentItems.slice(0, 10).map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-36">
-                <ContentCard
-                  id={item.id}
-                  title={item.name}
-                  image={item.logo}
-                  subtitle={item.streamType}
-                  onClick={() => {
-                    const type =
-                      item.streamType === "live"
-                        ? "live"
-                        : item.streamType === "movie"
-                          ? "movies"
-                          : "series";
-                    router.push(`/player/${item.id}?type=${type}`);
-                  }}
-                />
-              </div>
+            {recentItems.slice(0, 15).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => router.push(`/player/${item.id}?type=${item.streamType}`)}
+                tabIndex={0}
+                className={clsx(
+                  "flex-shrink-0 rounded-xl overflow-hidden bg-[#1a1a2e] border border-[#2a2a45] hover:border-indigo-500/50 transition-all",
+                  "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                  isLarge ? "w-36" : "w-28"
+                )}
+              >
+                <div className="aspect-square bg-[#25253d] flex items-center justify-center overflow-hidden">
+                  {item.logo ? (
+                    <img src={item.logo} alt={item.name} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-3xl">
+                      {item.streamType === "live" ? "📺" : item.streamType === "movie" ? "🎬" : "🎭"}
+                    </span>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className={clsx("font-medium text-white truncate", isLarge ? "text-sm" : "text-xs")}>{item.name}</p>
+                </div>
+              </button>
             ))}
           </div>
         </section>
       )}
 
-      {/* Favorites */}
+      {/* Favorites Preview */}
       {favorites.length > 0 && (
-        <section className="mb-8">
+        <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Favorites</h2>
-            <button
-              onClick={() => router.push("/favorites")}
-              className="text-sm text-indigo-400 hover:text-indigo-300"
-            >
-              View All
+            <h2 className={clsx("font-bold text-white flex items-center gap-2", isLarge ? "text-2xl" : "text-lg")}>
+              ⭐ Favoriten
+            </h2>
+            <button onClick={() => router.push("/favorites")} tabIndex={0}
+              className="text-yellow-400 hover:text-yellow-300 text-sm font-medium focus-visible:ring-2 focus-visible:ring-yellow-400 rounded px-2 py-1">
+              Alle anzeigen →
             </button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
-            {favorites.slice(0, 10).map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-36">
-                <ContentCard
-                  id={item.id}
-                  title={item.name}
-                  image={item.logo}
-                  subtitle={item.streamType}
-                  onClick={() =>
-                    router.push(`/player/${item.id}?type=${item.streamType}`)
-                  }
-                />
-              </div>
+            {favorites.slice(0, 10).map((fav) => (
+              <button
+                key={fav.id}
+                onClick={() => router.push(`/player/${fav.id}?type=${fav.streamType}`)}
+                tabIndex={0}
+                className={clsx(
+                  "flex-shrink-0 rounded-xl overflow-hidden border-2 border-yellow-500/30 hover:border-yellow-400/60 bg-[#1a1a2e] transition-all",
+                  "focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:outline-none",
+                  isLarge ? "w-36" : "w-28"
+                )}
+              >
+                <div className="aspect-square bg-[#25253d] flex items-center justify-center overflow-hidden">
+                  {fav.logo ? (
+                    <img src={fav.logo} alt={fav.name} className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-3xl">{fav.streamType === "live" ? "📺" : "🎬"}</span>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className={clsx("font-medium text-white truncate", isLarge ? "text-sm" : "text-xs")}>{fav.name}</p>
+                  {fav.channelNumber && <p className="text-xs text-yellow-400 font-bold">#{fav.channelNumber}</p>}
+                </div>
+              </button>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* Empty state if nothing */}
-      {recentItems.length === 0 && favorites.length === 0 && (
-        <section className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-500/10 mb-4">
-            <HiPlay className="h-10 w-10 text-indigo-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mb-2">
-            Start Watching
-          </h3>
-          <p className="text-sm text-gray-400 max-w-sm">
-            Browse Live TV, Movies, or Series to start your streaming
-            experience.
-          </p>
         </section>
       )}
     </div>

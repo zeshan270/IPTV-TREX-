@@ -24,24 +24,30 @@ type AspectRatio = "16:9" | "4:3" | "fill";
 interface VideoPlayerProps {
   src: string;
   title?: string;
+  initialPosition?: number;
   onChannelNext?: () => void;
   onChannelPrev?: () => void;
   onBack?: () => void;
+  onPositionChange?: (position: number, duration: number) => void;
   autoPlay?: boolean;
 }
 
 export default function VideoPlayer({
   src,
   title,
+  initialPosition,
   onChannelNext,
   onChannelPrev,
   onBack,
+  onPositionChange,
   autoPlay = true,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const positionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialSeekDoneRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -69,6 +75,7 @@ export default function VideoPlayer({
 
     setError(null);
     setIsBuffering(true);
+    initialSeekDoneRef.current = false;
 
     const destroyHls = () => {
       if (hlsRef.current) {
@@ -141,6 +148,56 @@ export default function VideoPlayer({
 
     return destroyHls;
   }, [src, autoPlay, isHLS]);
+
+  // Seek to initial position once video is ready
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !initialPosition || initialSeekDoneRef.current) return;
+
+    const handleCanPlay = () => {
+      if (!initialSeekDoneRef.current && initialPosition > 0) {
+        video.currentTime = initialPosition;
+        initialSeekDoneRef.current = true;
+      }
+    };
+
+    video.addEventListener("canplay", handleCanPlay);
+    // Also try immediately if already ready
+    if (video.readyState >= 3 && !initialSeekDoneRef.current && initialPosition > 0) {
+      video.currentTime = initialPosition;
+      initialSeekDoneRef.current = true;
+    }
+
+    return () => video.removeEventListener("canplay", handleCanPlay);
+  }, [initialPosition, src]);
+
+  // Position change callback interval (every 5 seconds)
+  useEffect(() => {
+    if (!onPositionChange) return;
+
+    positionIntervalRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (video && !video.paused && isFinite(video.currentTime) && video.currentTime > 0) {
+        onPositionChange(video.currentTime, video.duration || 0);
+      }
+    }, 5000);
+
+    return () => {
+      if (positionIntervalRef.current) {
+        clearInterval(positionIntervalRef.current);
+      }
+    };
+  }, [onPositionChange]);
+
+  // Save position on unmount
+  useEffect(() => {
+    return () => {
+      const video = videoRef.current;
+      if (video && onPositionChange && isFinite(video.currentTime) && video.currentTime > 0) {
+        onPositionChange(video.currentTime, video.duration || 0);
+      }
+    };
+  }, [onPositionChange]);
 
   // Video event listeners
   useEffect(() => {
@@ -336,6 +393,8 @@ export default function VideoPlayer({
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   const aspectClass =
     aspectRatio === "fill"
       ? "object-fill"
@@ -370,15 +429,15 @@ export default function VideoPlayer({
       {/* Error overlay */}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-4">
-          <p className="text-red-400 text-sm">{error}</p>
+          <p className="text-red-400 text-base">{error}</p>
           <button
             onClick={(e) => {
               e.stopPropagation();
               retry();
             }}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-base text-white hover:bg-indigo-500"
           >
-            <HiArrowPath className="h-4 w-4" />
+            <HiArrowPath className="h-5 w-5" />
             Retry
           </button>
         </div>
@@ -397,21 +456,21 @@ export default function VideoPlayer({
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
+              className="flex items-center gap-2 text-base text-white/80 hover:text-white min-h-[48px] min-w-[48px] justify-center"
             >
-              <HiBackward className="h-5 w-5" />
+              <HiBackward className="h-6 w-6" />
               Back
             </button>
           )}
           {title && (
-            <h2 className="text-sm font-medium text-white truncate max-w-md mx-auto">
+            <h2 className="text-base font-medium text-white truncate max-w-md mx-auto">
               {title}
             </h2>
           )}
           <div className="flex items-center gap-2">
             <button
               onClick={cycleAspectRatio}
-              className="rounded-lg bg-white/10 px-2 py-1 text-xs text-white/80 hover:bg-white/20"
+              className="rounded-lg bg-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/20 min-h-[48px]"
             >
               {aspectRatio}
             </button>
@@ -423,27 +482,27 @@ export default function VideoPlayer({
           {onChannelPrev && (
             <button
               onClick={onChannelPrev}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
             >
-              <HiChevronUp className="h-6 w-6" />
+              <HiChevronUp className="h-8 w-8" />
             </button>
           )}
           <button
             onClick={togglePlayPause}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 transition-all"
+            className="flex h-20 w-20 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 transition-all"
           >
             {isPlaying ? (
-              <HiPause className="h-8 w-8" />
+              <HiPause className="h-10 w-10" />
             ) : (
-              <HiPlay className="h-8 w-8 ml-1" />
+              <HiPlay className="h-10 w-10 ml-1" />
             )}
           </button>
           {onChannelNext && (
             <button
               onClick={onChannelNext}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
             >
-              <HiChevronDown className="h-6 w-6" />
+              <HiChevronDown className="h-8 w-8" />
             </button>
           )}
         </div>
@@ -452,28 +511,39 @@ export default function VideoPlayer({
         <div className="p-4 bg-gradient-to-t from-black/70 to-transparent pointer-events-auto">
           {/* Seek bar */}
           {!isLive && (
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-white/70 w-12 text-right">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-base font-semibold text-white/90 w-16 text-right tabular-nums">
                 {formatTime(currentTime)}
               </span>
-              <input
-                type="range"
-                min={0}
-                max={duration || 0}
-                value={currentTime}
-                onChange={handleSeek}
-                className="flex-1 h-1 appearance-none bg-white/20 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500"
-              />
-              <span className="text-xs text-white/70 w-12">
+              <div className="relative flex-1 h-[16px] flex items-center group/seek">
+                {/* Track background */}
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full h-[6px] rounded-full bg-white/20 group-hover/seek:h-[10px] transition-all">
+                    <div
+                      className="h-full rounded-full bg-indigo-500"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 0}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"
+                />
+              </div>
+              <span className="text-base font-semibold text-white/90 w-16 tabular-nums">
                 {formatTime(duration)}
               </span>
             </div>
           )}
 
           {isLive && (
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex items-center gap-1.5 text-xs font-medium text-red-400">
-                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex items-center gap-1.5 text-base font-medium text-red-400">
+                <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
                 LIVE
               </span>
             </div>
@@ -481,28 +551,28 @@ export default function VideoPlayer({
 
           {/* Controls row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={togglePlayPause}
-                className="text-white/80 hover:text-white"
+                className="text-white/80 hover:text-white min-h-[48px] min-w-[48px] flex items-center justify-center"
               >
                 {isPlaying ? (
-                  <HiPause className="h-5 w-5" />
+                  <HiPause className="h-7 w-7" />
                 ) : (
-                  <HiPlay className="h-5 w-5" />
+                  <HiPlay className="h-7 w-7" />
                 )}
               </button>
 
               {/* Volume */}
-              <div className="flex items-center gap-1 group/vol">
+              <div className="flex items-center gap-2 group/vol">
                 <button
                   onClick={toggleMute}
-                  className="text-white/80 hover:text-white"
+                  className="text-white/80 hover:text-white min-h-[48px] min-w-[48px] flex items-center justify-center"
                 >
                   {isMuted || volume === 0 ? (
-                    <HiSpeakerXMark className="h-5 w-5" />
+                    <HiSpeakerXMark className="h-7 w-7" />
                   ) : (
-                    <HiSpeakerWave className="h-5 w-5" />
+                    <HiSpeakerWave className="h-7 w-7" />
                   )}
                 </button>
                 <input
@@ -512,12 +582,12 @@ export default function VideoPlayer({
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-0 group-hover/vol:w-20 transition-all duration-200 h-1 appearance-none bg-white/20 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  className="w-0 group-hover/vol:w-24 transition-all duration-200 h-2 appearance-none bg-white/20 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[16px] [&::-webkit-slider-thumb]:w-[16px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* Settings */}
               {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
                 <div className="relative">
@@ -526,13 +596,13 @@ export default function VideoPlayer({
                       e.stopPropagation();
                       setShowSettings(!showSettings);
                     }}
-                    className="text-white/80 hover:text-white"
+                    className="text-white/80 hover:text-white min-h-[48px] min-w-[48px] flex items-center justify-center"
                   >
-                    <HiCog6Tooth className="h-5 w-5" />
+                    <HiCog6Tooth className="h-7 w-7" />
                   </button>
                   {showSettings && (
                     <div
-                      className="absolute bottom-8 right-0 w-56 rounded-lg bg-[#1a1a2e] border border-[#2a2a45] shadow-xl overflow-hidden"
+                      className="absolute bottom-12 right-0 w-64 rounded-lg bg-[#1a1a2e] border border-[#2a2a45] shadow-xl overflow-hidden"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {audioTracks.length > 1 && (
@@ -545,7 +615,7 @@ export default function VideoPlayer({
                               key={t.id}
                               onClick={() => handleAudioTrack(t.id)}
                               className={clsx(
-                                "block w-full text-left text-sm py-1 px-2 rounded",
+                                "block w-full text-left text-sm py-2 px-3 rounded min-h-[40px]",
                                 selectedAudio === t.id
                                   ? "text-indigo-400 bg-indigo-500/10"
                                   : "text-gray-300 hover:bg-white/5"
@@ -564,7 +634,7 @@ export default function VideoPlayer({
                           <button
                             onClick={() => handleSubtitleTrack(-1)}
                             className={clsx(
-                              "block w-full text-left text-sm py-1 px-2 rounded",
+                              "block w-full text-left text-sm py-2 px-3 rounded min-h-[40px]",
                               selectedSubtitle === -1
                                 ? "text-indigo-400 bg-indigo-500/10"
                                 : "text-gray-300 hover:bg-white/5"
@@ -577,7 +647,7 @@ export default function VideoPlayer({
                               key={t.id}
                               onClick={() => handleSubtitleTrack(t.id)}
                               className={clsx(
-                                "block w-full text-left text-sm py-1 px-2 rounded",
+                                "block w-full text-left text-sm py-2 px-3 rounded min-h-[40px]",
                                 selectedSubtitle === t.id
                                   ? "text-indigo-400 bg-indigo-500/10"
                                   : "text-gray-300 hover:bg-white/5"
@@ -596,12 +666,12 @@ export default function VideoPlayer({
               {/* Fullscreen */}
               <button
                 onClick={toggleFullscreen}
-                className="text-white/80 hover:text-white"
+                className="text-white/80 hover:text-white min-h-[48px] min-w-[48px] flex items-center justify-center"
               >
                 {isFullscreen ? (
-                  <HiArrowsPointingIn className="h-5 w-5" />
+                  <HiArrowsPointingIn className="h-7 w-7" />
                 ) : (
-                  <HiArrowsPointingOut className="h-5 w-5" />
+                  <HiArrowsPointingOut className="h-7 w-7" />
                 )}
               </button>
             </div>

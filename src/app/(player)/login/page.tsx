@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { HiGlobeAlt, HiUser, HiLockClosed, HiLink } from "react-icons/hi2";
+import { HiGlobeAlt, HiUser, HiLockClosed, HiLink, HiTrash, HiTag } from "react-icons/hi2";
 import { useAuthStore } from "@/lib/store";
 import { xtreamLogin, parseM3UFromUrl } from "@/lib/api-client";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 type Tab = "xtream" | "m3u";
+
+const MAC_STORAGE_KEY = "iptv-trex-device-mac";
 
 function generateMacAddress(): string {
   const hex = () =>
@@ -19,11 +21,30 @@ function generateMacAddress(): string {
   return `00:1A:79:${hex()}:${hex()}:${hex()}`;
 }
 
+function getOrCreateMac(): string {
+  if (typeof window === "undefined") return "";
+  const stored = localStorage.getItem(MAC_STORAGE_KEY);
+  if (stored) return stored;
+  const mac = generateMacAddress();
+  localStorage.setItem(MAC_STORAGE_KEY, mac);
+  return mac;
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login, setMac, macAddress, isLoggedIn } = useAuthStore();
+  const {
+    login,
+    setMac,
+    macAddress,
+    isLoggedIn,
+    savedPlaylists,
+    savePlaylist,
+    removePlaylist,
+    switchPlaylist,
+  } = useAuthStore();
 
   const [tab, setTab] = useState<Tab>("xtream");
+  const [playlistName, setPlaylistName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -31,17 +52,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Generate MAC on first visit
+  // Generate MAC on first visit - single key, generate ONCE
   useEffect(() => {
-    if (!macAddress) {
-      const stored = localStorage.getItem("iptv-trex-mac");
-      if (stored) {
-        setMac(stored);
-      } else {
-        const mac = generateMacAddress();
-        localStorage.setItem("iptv-trex-mac", mac);
-        setMac(mac);
-      }
+    const mac = getOrCreateMac();
+    if (mac && mac !== macAddress) {
+      setMac(mac);
     }
   }, [macAddress, setMac]);
 
@@ -53,6 +68,10 @@ export default function LoginPage() {
   }, [isLoggedIn, router]);
 
   const handleXtreamLogin = async () => {
+    if (!playlistName.trim()) {
+      setError("Please enter a name for this playlist");
+      return;
+    }
     if (!serverUrl || !username || !password) {
       setError("Please fill in all fields");
       return;
@@ -66,7 +85,18 @@ export default function LoginPage() {
         password,
       };
       await xtreamLogin(creds);
-      login(creds);
+
+      // Save playlist
+      const playlistId = `xtream-${Date.now()}`;
+      savePlaylist({
+        id: playlistId,
+        name: playlistName.trim(),
+        type: "xtream",
+        credentials: creds,
+        addedAt: Date.now(),
+      });
+
+      login(creds, playlistName.trim());
       router.push("/");
     } catch (err) {
       setError(
@@ -78,6 +108,10 @@ export default function LoginPage() {
   };
 
   const handleM3ULogin = async () => {
+    if (!playlistName.trim()) {
+      setError("Please enter a name for this playlist");
+      return;
+    }
     if (!m3uUrl) {
       setError("Please enter an M3U URL");
       return;
@@ -86,7 +120,18 @@ export default function LoginPage() {
     setError("");
     try {
       await parseM3UFromUrl(m3uUrl);
-      login({ url: m3uUrl });
+
+      const creds = { url: m3uUrl };
+      const playlistId = `m3u-${Date.now()}`;
+      savePlaylist({
+        id: playlistId,
+        name: playlistName.trim(),
+        type: "m3u",
+        credentials: creds,
+        addedAt: Date.now(),
+      });
+
+      login(creds, playlistName.trim());
       router.push("/");
     } catch (err) {
       setError(
@@ -96,6 +141,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleSwitchPlaylist = (id: string) => {
+    switchPlaylist(id);
+    router.push("/");
+  };
+
+  const inputClass =
+    "w-full rounded-xl border border-[#2a2a45] bg-[#0f0f1a] py-3.5 pl-12 pr-4 text-base text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0f0f1a] p-4">
@@ -108,13 +161,13 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/20">
-            <span className="text-2xl font-bold text-white">T</span>
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/20">
+            <span className="text-3xl font-bold text-white">T</span>
           </div>
           <h1 className="text-3xl font-bold">
             <span className="gradient-text">IPTV TREX</span>
           </h1>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-base text-gray-500 mt-2">
             Premium Streaming Experience
           </p>
         </div>
@@ -129,7 +182,7 @@ export default function LoginPage() {
                 setError("");
               }}
               className={clsx(
-                "flex-1 py-3.5 text-sm font-medium transition-all",
+                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50",
                 tab === "xtream"
                   ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
                   : "text-gray-500 hover:text-gray-300"
@@ -143,7 +196,7 @@ export default function LoginPage() {
                 setError("");
               }}
               className={clsx(
-                "flex-1 py-3.5 text-sm font-medium transition-all",
+                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50",
                 tab === "m3u"
                   ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
                   : "text-gray-500 hover:text-gray-300"
@@ -156,60 +209,77 @@ export default function LoginPage() {
           <div className="p-6">
             {/* Error */}
             {error && (
-              <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+              <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-base text-red-400">
                 {error}
               </div>
             )}
+
+            {/* Playlist Name (always visible) */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-500 uppercase tracking-wider mb-1.5">
+                Playlist Name *
+              </label>
+              <div className="relative">
+                <HiTag className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                <input
+                  type="text"
+                  value={playlistName}
+                  onChange={(e) => setPlaylistName(e.target.value)}
+                  placeholder='e.g., "My IPTV", "Family List"'
+                  className={inputClass}
+                />
+              </div>
+            </div>
 
             {tab === "xtream" ? (
               <div className="space-y-4">
                 {/* Server URL */}
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm text-gray-500 uppercase tracking-wider mb-1.5">
                     Server URL
                   </label>
                   <div className="relative">
-                    <HiGlobeAlt className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <HiGlobeAlt className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                     <input
                       type="url"
                       value={serverUrl}
                       onChange={(e) => setServerUrl(e.target.value)}
                       placeholder="http://example.com:8080"
-                      className="w-full rounded-lg border border-[#2a2a45] bg-[#0f0f1a] py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 transition-colors"
+                      className={inputClass}
                     />
                   </div>
                 </div>
 
                 {/* Username */}
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm text-gray-500 uppercase tracking-wider mb-1.5">
                     Username
                   </label>
                   <div className="relative">
-                    <HiUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <HiUser className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                     <input
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter username"
-                      className="w-full rounded-lg border border-[#2a2a45] bg-[#0f0f1a] py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 transition-colors"
+                      className={inputClass}
                     />
                   </div>
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm text-gray-500 uppercase tracking-wider mb-1.5">
                     Password
                   </label>
                   <div className="relative">
-                    <HiLockClosed className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <HiLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter password"
-                      className="w-full rounded-lg border border-[#2a2a45] bg-[#0f0f1a] py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 transition-colors"
+                      className={inputClass}
                       onKeyDown={(e) => e.key === "Enter" && handleXtreamLogin()}
                     />
                   </div>
@@ -218,7 +288,7 @@ export default function LoginPage() {
                 <button
                   onClick={handleXtreamLogin}
                   disabled={loading}
-                  className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-sm font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-base font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[56px]"
                 >
                   {loading ? (
                     <LoadingSpinner size="sm" className="inline-flex" />
@@ -231,17 +301,17 @@ export default function LoginPage() {
               <div className="space-y-4">
                 {/* M3U URL */}
                 <div>
-                  <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5">
+                  <label className="block text-sm text-gray-500 uppercase tracking-wider mb-1.5">
                     M3U / M3U8 URL
                   </label>
                   <div className="relative">
-                    <HiLink className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <HiLink className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                     <input
                       type="url"
                       value={m3uUrl}
                       onChange={(e) => setM3uUrl(e.target.value)}
                       placeholder="http://example.com/playlist.m3u"
-                      className="w-full rounded-lg border border-[#2a2a45] bg-[#0f0f1a] py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 outline-none focus:border-indigo-500 transition-colors"
+                      className={inputClass}
                       onKeyDown={(e) => e.key === "Enter" && handleM3ULogin()}
                     />
                   </div>
@@ -250,7 +320,7 @@ export default function LoginPage() {
                 <button
                   onClick={handleM3ULogin}
                   disabled={loading}
-                  className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-sm font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-base font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[56px]"
                 >
                   {loading ? (
                     <LoadingSpinner size="sm" className="inline-flex" />
@@ -265,16 +335,76 @@ export default function LoginPage() {
           {/* MAC Address */}
           <div className="border-t border-[#2a2a45] px-6 py-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">Device MAC</span>
-              <span className="text-xs text-gray-400 font-mono">
+              <span className="text-sm text-gray-500">Device MAC</span>
+              <span className="text-sm text-gray-400 font-mono">
                 {macAddress || "Generating..."}
               </span>
             </div>
           </div>
         </div>
 
+        {/* Saved Playlists */}
+        {savedPlaylists.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-base font-semibold text-white mb-3">
+              Saved Playlists
+            </h3>
+            <div className="space-y-3">
+              {savedPlaylists.map((pl) => {
+                const displayUrl =
+                  pl.type === "xtream" && "serverUrl" in pl.credentials
+                    ? (pl.credentials as { serverUrl: string }).serverUrl
+                    : "url" in pl.credentials
+                      ? (pl.credentials as { url: string }).url
+                      : "";
+
+                return (
+                  <div
+                    key={pl.id}
+                    className="rounded-xl bg-[#1a1a2e]/80 border border-[#2a2a45] p-4 flex items-center gap-4"
+                  >
+                    <button
+                      onClick={() => handleSwitchPlaylist(pl.id)}
+                      className="flex-1 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-lg p-1 -m-1"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-base font-medium text-white">
+                            {pl.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={clsx(
+                                "text-xs px-2 py-0.5 rounded-full font-medium",
+                                pl.type === "xtream"
+                                  ? "bg-indigo-500/20 text-indigo-400"
+                                  : "bg-purple-500/20 text-purple-400"
+                              )}
+                            >
+                              {pl.type === "xtream" ? "Xtream" : "M3U"}
+                            </span>
+                            <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                              {displayUrl}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => removePlaylist(pl.id)}
+                      className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                    >
+                      <HiTrash className="h-5 w-5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-sm text-gray-600 mt-6">
           IPTV TREX v1.0 - Premium Streaming
         </p>
       </div>
