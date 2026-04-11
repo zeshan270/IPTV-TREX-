@@ -42,8 +42,8 @@ export async function POST(
       select: { id: true },
     });
 
-    const foundIds = new Set(devices.map((d) => d.id));
-    const missingIds = deviceIds.filter((id) => !foundIds.has(id));
+    const foundIds = new Set(devices.map((d: any) => d.id));
+    const missingIds = deviceIds.filter((id: string) => !foundIds.has(id));
 
     if (missingIds.length > 0) {
       return NextResponse.json(
