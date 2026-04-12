@@ -111,6 +111,42 @@ export default function VideoPlayer({
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
   const isLive = !duration || duration === Infinity;
 
+  // Track pending play() promise to prevent AbortError
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+
+  // Safe play function - waits for any pending play() to settle before calling new one
+  const safePlay = useCallback(async (vid: HTMLVideoElement) => {
+    // Wait for any pending play promise to settle
+    if (playPromiseRef.current) {
+      try { await playPromiseRef.current; } catch {}
+    }
+    const savedVol = userVolumeRef.current;
+    vid.volume = savedVol;
+    vid.muted = false;
+    const promise = vid.play();
+    playPromiseRef.current = promise;
+    return promise.then(() => {
+      vid.volume = savedVol;
+      vid.muted = false;
+      playPromiseRef.current = null;
+    }).catch((err) => {
+      playPromiseRef.current = null;
+      // If AbortError, just ignore - it means a new play/load was called
+      if (err?.name === "AbortError") return;
+      // Autoplay blocked - try muted then unmute
+      vid.muted = true;
+      const p2 = vid.play();
+      playPromiseRef.current = p2;
+      return p2.then(() => {
+        playPromiseRef.current = null;
+        setTimeout(() => {
+          vid.volume = savedVol;
+          vid.muted = false;
+        }, 100);
+      }).catch(() => { playPromiseRef.current = null; });
+    });
+  }, []);
+
   // Properly destroy HLS instance and stop all network activity
   const destroyHls = useCallback(() => {
     if (hlsRef.current) {
@@ -136,6 +172,8 @@ export default function VideoPlayer({
     const savedVolume = userVolumeRef.current;
 
     // CRITICAL: Fully stop previous stream before starting new one
+    // Pause first to prevent AbortError from pending play() promises
+    video.pause();
     destroyHls();
     video.removeAttribute("src");
     video.load(); // Force browser to release previous connection
@@ -153,9 +191,9 @@ export default function VideoPlayer({
         video.onerror = () => {
           video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
           video.src = src;
-          if (autoPlay) video.play().catch(() => {});
+          if (autoPlay) safePlay(video);
         };
-        if (autoPlay) video.play().catch(() => {});
+        if (autoPlay) safePlay(video);
       }
     }, 200);
 
@@ -163,7 +201,7 @@ export default function VideoPlayer({
       if (!Hls.isSupported()) {
         setLoadingStatus("Lade Stream (Safari)...");
         vid.src = proxyUrl(src);
-        if (autoPlay) vid.play().catch(() => {});
+        if (autoPlay) safePlay(vid);
         return;
       }
 
@@ -211,21 +249,7 @@ export default function VideoPlayer({
         }, 200);
 
         if (autoPlay) {
-          vid.play().then(() => {
-            // Re-apply volume AFTER play succeeds (some browsers reset on play)
-            vid.volume = savedVol;
-            vid.muted = false;
-          }).catch(() => {
-            // Autoplay blocked - try muted first, then unmute
-            vid.muted = true;
-            vid.play().then(() => {
-              // Unmute after muted autoplay succeeds
-              setTimeout(() => {
-                vid.volume = savedVol;
-                vid.muted = false;
-              }, 100);
-            }).catch(() => {});
-          });
+          safePlay(vid);
         }
 
         setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
@@ -236,21 +260,21 @@ export default function VideoPlayer({
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
         const httpStatus = data.response?.code;
-        if (httpStatus === 456) {
+        // 456 = stream blocked / max connections on some servers
+        // 458 = max connections reached
+        // Both should auto-retry after releasing the previous connection
+        if (httpStatus === 456 || httpStatus === 458) {
           destroyHls();
-          setError("Stream blockiert (Fehler 456). Bitte prüfe dein Abo.");
-          setIsBuffering(false);
-          return;
-        }
-        if (httpStatus === 458) {
-          // Don't show max connections as fatal - auto-retry after cleanup
-          destroyHls();
-          if (retryCountRef.current < 2) {
+          if (retryCountRef.current < 3) {
             retryCountRef.current++;
-            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/2)...`);
-            setTimeout(() => tryHlsProxy(vid), 1500);
+            const waitTime = retryCountRef.current * 1500; // 1.5s, 3s, 4.5s
+            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
+            setTimeout(() => tryHlsProxy(vid), waitTime);
           } else {
-            setError("Maximale Verbindungen erreicht. Bitte warte kurz und versuche es erneut.");
+            setError(httpStatus === 456
+              ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
+              : "Maximale Verbindungen erreicht. Bitte warte kurz und versuche es erneut."
+            );
             setIsBuffering(false);
           }
           return;
@@ -272,7 +296,7 @@ export default function VideoPlayer({
                   setError("Stream konnte nicht geladen werden.");
                   setIsBuffering(false);
                 };
-                if (autoPlay) vid.play().catch(() => {});
+                if (autoPlay) safePlay(vid);
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
@@ -281,7 +305,7 @@ export default function VideoPlayer({
             default:
               destroyHls();
               vid.src = proxyUrl(src);
-              if (autoPlay) vid.play().catch(() => {});
+              if (autoPlay) safePlay(vid);
               break;
           }
         }
@@ -295,7 +319,7 @@ export default function VideoPlayer({
       destroyHls();
       if (video) video.onerror = null;
     };
-  }, [src, autoPlay, isHLS, destroyHls]);
+  }, [src, autoPlay, isHLS, destroyHls, safePlay]);
 
   // Seek to initial position
   useEffect(() => {
@@ -451,7 +475,7 @@ export default function VideoPlayer({
       const video = videoRef.current;
       if (!video) return;
       switch (e.key.toLowerCase()) {
-        case " ": case "k": e.preventDefault(); video.paused ? video.play() : video.pause(); resetHideTimer(); break;
+        case " ": case "k": e.preventDefault(); video.paused ? safePlay(video) : video.pause(); resetHideTimer(); break;
         case "f": e.preventDefault(); toggleFullscreen(); break;
         case "m": e.preventDefault(); video.muted = !video.muted; break;
         case "arrowleft": e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 10); resetHideTimer(); break;
@@ -465,7 +489,7 @@ export default function VideoPlayer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [duration, isFullscreen, resetHideTimer]);
 
-  const togglePlayPause = () => { const v = videoRef.current; if (v) v.paused ? v.play() : v.pause(); };
+  const togglePlayPause = () => { const v = videoRef.current; if (v) v.paused ? safePlay(v) : v.pause(); };
 
   const toggleFullscreen = () => {
     const container = containerRef.current;
@@ -515,7 +539,7 @@ export default function VideoPlayer({
     if (video) {
       video.removeAttribute("src");
       video.load();
-      setTimeout(() => { video.src = proxyUrl(src); video.load(); video.play().catch(() => {}); }, 300);
+      setTimeout(() => { video.src = proxyUrl(src); video.load(); safePlay(video); }, 300);
     }
   };
 

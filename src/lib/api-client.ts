@@ -356,8 +356,10 @@ export function buildStreamUrl(
   extension?: string
 ): string {
   const base = buildBaseUrl(creds);
-  const u = encodeURIComponent(creds.username);
-  const p = encodeURIComponent(creds.password);
+  // DO NOT encodeURIComponent here - username/password are URL path segments
+  // and the full URL gets encoded again when passed as a query param
+  const u = creds.username.trim();
+  const p = creds.password.trim();
   if (type === "live") {
     const ext = extension || "m3u8";
     return `${base}/live/${u}/${p}/${streamId}.${ext}`;
