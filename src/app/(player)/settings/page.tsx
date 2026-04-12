@@ -13,7 +13,7 @@ import PinDialog from "@/components/ui/PinDialog";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { macAddress, logout, credentials, playlistName, savedPlaylists, switchPlaylist, removePlaylist, updatePlaylist, setPlaylistName } = useAuthStore();
+  const { macAddress, logout, credentials, playlistName, savedPlaylists, switchPlaylist, removePlaylist, updatePlaylist, setPlaylistName, savePlaylist, login } = useAuthStore();
   const {
     parentalPin, bufferSize, preferredFormat, autoplay,
     fontSize, remoteControlMode, showChannelNumbers,
@@ -32,6 +32,12 @@ export default function SettingsPage() {
   const [editUrl, setEditUrl] = useState("");
   const [editUser, setEditUser] = useState("");
   const [editPass, setEditPass] = useState("");
+  const [showAddPlaylist, setShowAddPlaylist] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addUrl, setAddUrl] = useState("");
+  const [addUser, setAddUser] = useState("");
+  const [addPass, setAddPass] = useState("");
+  const [addType, setAddType] = useState<"xtream" | "m3u">("xtream");
 
   const isLarge = fontSize === "large" || fontSize === "extra-large";
   const textBase = isLarge ? "text-lg" : "text-sm";
@@ -119,14 +125,25 @@ export default function SettingsPage() {
 
       {/* Playlist Management */}
       <section className="mb-6">
-        <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiListBullet className="h-4 w-4" /> Playlisten
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider", textSmall)}>
+            <HiListBullet className="h-4 w-4" /> Playlisten
+          </h2>
+          <button
+            onClick={() => { setShowAddPlaylist(true); setAddName(""); setAddUrl(""); setAddUser(""); setAddPass(""); setAddType("xtream"); }}
+            tabIndex={0}
+            className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm font-semibold hover:bg-green-500/30 focus-visible:ring-2 focus-visible:ring-green-400"
+          >+ Neue Playlist</button>
+        </div>
         <div className="rounded-xl glass-card divide-y divide-white/5">
+          {/* Active playlist */}
           <div className="p-4 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className={clsx("text-white font-medium mb-1", textBase)}>Aktive Playlist: <span className="text-indigo-400">{playlistName || "Keine"}</span></p>
-              <p className={clsx("text-gray-500 truncate", textSmall)}>Server: {serverUrl}</p>
+            <div className="min-w-0 flex items-center gap-3">
+              <span className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" title="Aktiv" />
+              <div className="min-w-0">
+                <p className={clsx("text-white font-medium mb-0.5", textBase)}>{playlistName || "Keine Playlist"}</p>
+                <p className={clsx("text-gray-500 truncate", textSmall)}>{serverUrl}</p>
+              </div>
             </div>
             {credentials && (
               <button
@@ -135,7 +152,6 @@ export default function SettingsPage() {
                   if (activePl) {
                     startEditPlaylist(activePl);
                   } else {
-                    // Create a temporary editable state for unsaved active playlist
                     setEditingPlaylist("__active__");
                     setEditName(playlistName || "My IPTV");
                     if ("serverUrl" in credentials) {
@@ -154,34 +170,43 @@ export default function SettingsPage() {
               >Bearbeiten</button>
             )}
           </div>
-          {savedPlaylists.length > 1 && (
+
+          {/* Saved playlists */}
+          {savedPlaylists.length > 0 && (
             <div className="p-4 space-y-2">
-              <p className={clsx("text-gray-400 mb-2", textSmall)}>Gespeicherte Playlisten:</p>
-              {savedPlaylists.map((pl) => (
-                <div key={pl.id} className="flex items-center justify-between gap-2 bg-[#25253d] rounded-lg p-3">
-                  <div className="min-w-0">
-                    <p className={clsx("text-white font-medium truncate", textBase)}>{pl.name}</p>
-                    <p className={clsx("text-gray-500", textSmall)}>{pl.type.toUpperCase()}</p>
+              <p className={clsx("text-gray-400 mb-2", textSmall)}>Gespeicherte Playlisten ({savedPlaylists.length}):</p>
+              {savedPlaylists.map((pl) => {
+                const isActive = credentials && JSON.stringify(credentials) === JSON.stringify(pl.credentials);
+                return (
+                  <div key={pl.id} className={clsx("flex items-center justify-between gap-2 rounded-lg p-3", isActive ? "bg-indigo-500/10 border border-indigo-500/30" : "bg-[#25253d]")}>
+                    <div className="min-w-0 flex items-center gap-3">
+                      {isActive && <span className="h-2.5 w-2.5 rounded-full bg-green-500 flex-shrink-0" />}
+                      <div className="min-w-0">
+                        <p className={clsx("text-white font-medium truncate", textBase)}>{pl.name}</p>
+                        <p className={clsx("text-gray-500", textSmall)}>
+                          {"serverUrl" in pl.credentials ? pl.credentials.serverUrl : pl.credentials.url}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => startEditPlaylist(pl)} tabIndex={0}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400">
+                        Bearbeiten
+                      </button>
+                      {!isActive && (
+                        <button onClick={() => { switchPlaylist(pl.id); window.location.reload(); }} tabIndex={0}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/30 focus-visible:ring-2 focus-visible:ring-indigo-400">
+                          Aktivieren
+                        </button>
+                      )}
+                      <button onClick={() => removePlaylist(pl.id)} tabIndex={0}
+                        className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 focus-visible:ring-2 focus-visible:ring-red-400">
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => startEditPlaylist(pl)}
-                      tabIndex={0}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400"
-                    >Bearbeiten</button>
-                    <button
-                      onClick={() => switchPlaylist(pl.id)}
-                      tabIndex={0}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/30 focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    >Wechseln</button>
-                    <button
-                      onClick={() => removePlaylist(pl.id)}
-                      tabIndex={0}
-                      className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 focus-visible:ring-2 focus-visible:ring-red-400"
-                    >✕</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -386,7 +411,6 @@ export default function SettingsPage() {
                 onClick={() => {
                   if (editingPlaylist === "__active__") {
                     // Update the active playlist directly
-                    const { login } = useAuthStore.getState();
                     const isXtream = editUser && editPass;
                     if (isXtream) {
                       login({ serverUrl: editUrl, username: editUser, password: editPass }, editName);
@@ -400,6 +424,90 @@ export default function SettingsPage() {
                 }}
                 className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-500 transition-colors"
               >Speichern</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Playlist Dialog */}
+      {showAddPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl glass-panel p-6">
+            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>Neue Playlist hinzufügen</h3>
+
+            {/* Type selector */}
+            <div className="flex rounded-lg border border-[#2a2a45] overflow-hidden mb-4">
+              <button onClick={() => setAddType("xtream")}
+                className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
+                  addType === "xtream" ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white")}>
+                Xtream Codes
+              </button>
+              <button onClick={() => setAddType("m3u")}
+                className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
+                  addType === "m3u" ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white")}>
+                M3U URL
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Name</label>
+                <input type="text" value={addName} onChange={(e) => setAddName(e.target.value)}
+                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                  placeholder="z.B. Mein IPTV" />
+              </div>
+              <div>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>
+                  {addType === "xtream" ? "Server URL" : "M3U URL"}
+                </label>
+                <input type="url" value={addUrl} onChange={(e) => setAddUrl(e.target.value)}
+                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono", textSmall)}
+                  placeholder={addType === "xtream" ? "http://server.com:port" : "http://example.com/playlist.m3u"} />
+              </div>
+              {addType === "xtream" && (
+                <>
+                  <div>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Benutzername</label>
+                    <input type="text" value={addUser} onChange={(e) => setAddUser(e.target.value)}
+                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      placeholder="Username" />
+                  </div>
+                  <div>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Passwort</label>
+                    <input type="text" value={addPass} onChange={(e) => setAddPass(e.target.value)}
+                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      placeholder="Password" />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowAddPlaylist(false)}
+                className="flex-1 rounded-xl bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45] transition-colors">
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  if (!addName.trim() || !addUrl.trim()) return;
+                  const id = Date.now().toString(36);
+                  const newCreds = addType === "xtream"
+                    ? { serverUrl: addUrl.trim(), username: addUser.trim(), password: addPass.trim() }
+                    : { url: addUrl.trim() };
+                  savePlaylist({
+                    id,
+                    name: addName.trim(),
+                    type: addType,
+                    credentials: newCreds,
+                    addedAt: Date.now(),
+                  });
+                  // Switch to the new playlist immediately
+                  login(newCreds, addName.trim());
+                  setShowAddPlaylist(false);
+                  window.location.reload();
+                }}
+                className="flex-1 rounded-xl bg-green-600 py-3 font-medium text-white hover:bg-green-500 transition-colors">
+                Hinzufügen & Aktivieren
+              </button>
             </div>
           </div>
         </div>

@@ -30,10 +30,13 @@ interface VideoPlayerProps {
 }
 
 /**
- * Build a proxied URL to bypass CORS for IPTV streams.
+ * Build a proxied URL to bypass CORS/mixed-content for IPTV streams.
+ * Only proxies when running on HTTPS and the URL is HTTP.
  */
 function proxyUrl(url: string): string {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
+  const trimmed = url.trim();
+  const needsProxy = typeof window !== "undefined" && window.location.protocol === "https:" && trimmed.startsWith("http:");
+  return needsProxy ? `/api/proxy?url=${encodeURIComponent(trimmed)}` : trimmed;
 }
 
 export default function VideoPlayer({

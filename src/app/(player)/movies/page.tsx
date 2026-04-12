@@ -125,8 +125,13 @@ export default function MoviesPage() {
 
   useEffect(() => {
     if (!isXtream || !creds) return;
+    // Only load movies when a category is selected - loading all is too slow
+    if (!selectedCategory) {
+      setMovies([]);
+      return;
+    }
     setLoadingMovies(true);
-    fetchVodStreams(creds, selectedCategory ?? undefined)
+    fetchVodStreams(creds, selectedCategory)
       .then((m) => {
         setMovies(m);
         setLoadingMovies(false);
@@ -171,7 +176,7 @@ export default function MoviesPage() {
   const handlePlay = (movie: Movie) => {
     if (!creds) return;
     const url = buildVodUrl(creds, movie.streamId, movie.containerExtension);
-    router.push(`/player/${movie.streamId}?type=movie&url=${encodeURIComponent(url)}`);
+    router.push(`/player/${movie.streamId}?type=movie&url=${encodeURIComponent(url)}&name=${encodeURIComponent(movie.name)}`);
   };
 
   const handleCountrySelect = (code: string | null) => {
@@ -330,14 +335,20 @@ export default function MoviesPage() {
 
       {/* Movie grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {loadingMovies ? (
+        {!selectedCategory && !searchQuery ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HiFilm className="h-16 w-16 text-gray-600 mb-4" />
+            <p className="text-lg text-gray-400">Kategorie auswählen</p>
+            <p className="text-sm text-gray-500 mt-1">Wähle eine Kategorie um Filme zu laden</p>
+          </div>
+        ) : loadingMovies ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Loading movies..." />
+            <LoadingSpinner text="Lade Filme..." />
           </div>
         ) : filteredMovies.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiFilm className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">No movies found</p>
+            <p className="text-lg text-gray-400">Keine Filme gefunden</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

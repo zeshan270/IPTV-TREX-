@@ -151,6 +151,7 @@ export default function LiveTVPage() {
   const router = useRouter();
   const credentials = useAuthStore((s) => s.credentials);
   const setPlaylist = usePlayerStore((s) => s.setPlaylist);
+  const setChannel = usePlayerStore((s) => s.setChannel);
   const { toggle, isFavorite } = useFavoritesStore();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -256,7 +257,9 @@ export default function LiveTVPage() {
   }, [channels, searchQuery, showFavoritesOnly, isFavorite]);
 
   const handleChannelClick = (channel: Channel) => {
-    router.push(`/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}`);
+    setChannel(channel);
+    setPlaylist(filteredChannels);
+    router.push(`/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}&name=${encodeURIComponent(channel.name)}`);
   };
 
   const handleCountrySelect = (code: string | null) => {

@@ -44,7 +44,7 @@ export function clearCache(): void {
 // ==================== Xtream API Client ====================
 
 function buildBaseUrl(creds: XtreamCredentials): string {
-  return creds.serverUrl.replace(/\/+$/, "");
+  return creds.serverUrl.trim().replace(/\/+$/, "");
 }
 
 function buildApiUrl(creds: XtreamCredentials, action?: string): string {
@@ -61,7 +61,8 @@ function buildCacheKey(creds: XtreamCredentials, action: string, extra?: string)
 /**
  * Fetch JSON from a URL, using the proxy if the URL is HTTP (to avoid mixed content on HTTPS pages).
  */
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(rawUrl: string): Promise<T> {
+  const url = rawUrl.trim();
   // Use proxy for HTTP URLs when running on HTTPS to avoid mixed content blocking
   const needsProxy = typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http:");
   const fetchUrl = needsProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url;

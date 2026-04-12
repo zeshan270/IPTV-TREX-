@@ -63,8 +63,13 @@ export default function SeriesPage() {
 
   useEffect(() => {
     if (!isXtream || !creds) return;
+    // Only load series when a category is selected - loading all is too slow
+    if (!selectedCategory) {
+      setSeriesList([]);
+      return;
+    }
     setLoadingSeries(true);
-    fetchSeries(creds, selectedCategory ?? undefined)
+    fetchSeries(creds, selectedCategory)
       .then((s) => {
         setSeriesList(s);
         setLoadingSeries(false);
@@ -103,10 +108,11 @@ export default function SeriesPage() {
     }
   };
 
-  const handlePlayEpisode = (episodeId: string, ext: string) => {
+  const handlePlayEpisode = (episodeId: string, ext: string, episodeTitle?: string) => {
     if (!creds) return;
     const url = buildSeriesUrl(creds, Number(episodeId), ext);
-    router.push(`/player/${episodeId}?type=series&url=${encodeURIComponent(url)}`);
+    const name = episodeTitle ? `${selectedSeries?.name} - ${episodeTitle}` : selectedSeries?.name || episodeId;
+    router.push(`/player/${episodeId}?type=series&url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`);
   };
 
   if (loading) {
@@ -165,14 +171,20 @@ export default function SeriesPage() {
 
       {/* Series grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {loadingSeries ? (
+        {!selectedCategory && !searchQuery ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HiRectangleStack className="h-16 w-16 text-gray-600 mb-4" />
+            <p className="text-lg text-gray-400">Kategorie auswählen</p>
+            <p className="text-sm text-gray-500 mt-1">Wähle eine Kategorie um Serien zu laden</p>
+          </div>
+        ) : loadingSeries ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Loading series..." />
+            <LoadingSpinner text="Lade Serien..." />
           </div>
         ) : filteredSeries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <HiRectangleStack className="h-12 w-12 text-gray-600 mb-3" />
-            <p className="text-sm text-gray-500">No series found</p>
+            <HiRectangleStack className="h-16 w-16 text-gray-600 mb-4" />
+            <p className="text-lg text-gray-400">Keine Serien gefunden</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -287,7 +299,7 @@ export default function SeriesPage() {
                       <button
                         key={ep.id}
                         onClick={() =>
-                          handlePlayEpisode(ep.id, ep.container_extension)
+                          handlePlayEpisode(ep.id, ep.container_extension, `S${ep.season}E${ep.episode_num} ${ep.title}`)
                         }
                         className="flex w-full items-center gap-3 rounded-xl glass-row p-3 text-left"
                       >

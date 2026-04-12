@@ -18,6 +18,7 @@ export default function PlayerPage() {
   const id = params.id as string;
   const type = searchParams.get("type") || "live";
   const urlParam = searchParams.get("url");
+  const nameParam = searchParams.get("name");
 
   const credentials = useAuthStore((s) => s.credentials);
   const { currentChannel, playlist, setChannel, next, prev, savePosition, getPosition } =
@@ -44,7 +45,7 @@ export default function PlayerPage() {
   // Build stream URL and restore position
   useEffect(() => {
     if (urlParam) {
-      setStreamUrl(decodeURIComponent(urlParam));
+      setStreamUrl(decodeURIComponent(urlParam).trim());
     } else if (isXtream && creds) {
       const streamType = type === "live" ? "live" : type === "movie" ? "movie" : "series";
       const url = buildStreamUrl(creds, Number(id), streamType);
@@ -61,6 +62,9 @@ export default function PlayerPage() {
     }
   }, [id, urlParam, type, isXtream, creds, getPosition]);
 
+  // Derive display name from channel store or URL param
+  const displayName = currentChannel?.name || nameParam || id;
+
   // Track recently watched
   useEffect(() => {
     if (currentChannel) {
@@ -73,10 +77,11 @@ export default function PlayerPage() {
     } else if (id) {
       addRecent({
         id,
-        name: `Stream ${id}`,
+        name: nameParam || id,
         streamType: type as "live" | "movie" | "series",
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentChannel, addRecent, type]);
 
   // Fetch EPG for live channels
@@ -234,7 +239,7 @@ export default function PlayerPage() {
     <div className="relative h-full w-full bg-black">
       <VideoPlayer
         src={streamUrl}
-        title={currentChannel?.name || `Stream ${id}`}
+        title={displayName}
         initialPosition={initialPosition}
         onChannelNext={type === "live" ? handleNext : undefined}
         onChannelPrev={type === "live" ? handlePrev : undefined}

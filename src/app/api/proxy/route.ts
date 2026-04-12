@@ -6,10 +6,11 @@ import { NextRequest, NextResponse } from "next/server";
  * Handles m3u8 manifests (rewrites segment URLs) and ts segments.
  */
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get("url");
-  if (!url) {
+  const rawUrl = request.nextUrl.searchParams.get("url");
+  if (!rawUrl) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
+  const url = rawUrl.trim();
 
   try {
     const controller = new AbortController();
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "IPTV-TREX/1.0",
+        "User-Agent": "VLC/3.0.20 LibVLC/3.0.20",
+        "Accept": "*/*",
       },
     });
     clearTimeout(timeout);
