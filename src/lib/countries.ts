@@ -530,6 +530,234 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   AFGHAN: { code: "AF", name: "Afghanistan", flag: "\u{1F1E6}\u{1F1EB}" },
   AFG: { code: "AF", name: "Afghanistan", flag: "\u{1F1E6}\u{1F1EB}" },
 
+  // Singapore
+  SG: { code: "SG", name: "Singapore", flag: "\u{1F1F8}\u{1F1EC}" },
+  SINGAPORE: { code: "SG", name: "Singapore", flag: "\u{1F1F8}\u{1F1EC}" },
+  SINGAPUR: { code: "SG", name: "Singapore", flag: "\u{1F1F8}\u{1F1EC}" },
+  SGP: { code: "SG", name: "Singapore", flag: "\u{1F1F8}\u{1F1EC}" },
+
+  // Hong Kong
+  HK: { code: "HK", name: "Hong Kong", flag: "\u{1F1ED}\u{1F1F0}" },
+  "HONG KONG": { code: "HK", name: "Hong Kong", flag: "\u{1F1ED}\u{1F1F0}" },
+  HONGKONG: { code: "HK", name: "Hong Kong", flag: "\u{1F1ED}\u{1F1F0}" },
+  HKG: { code: "HK", name: "Hong Kong", flag: "\u{1F1ED}\u{1F1F0}" },
+
+  // Taiwan
+  TW: { code: "TW", name: "Taiwan", flag: "\u{1F1F9}\u{1F1FC}" },
+  TAIWAN: { code: "TW", name: "Taiwan", flag: "\u{1F1F9}\u{1F1FC}" },
+  TWN: { code: "TW", name: "Taiwan", flag: "\u{1F1F9}\u{1F1FC}" },
+
+  // Nepal
+  NP: { code: "NP", name: "Nepal", flag: "\u{1F1F3}\u{1F1F5}" },
+  NEPAL: { code: "NP", name: "Nepal", flag: "\u{1F1F3}\u{1F1F5}" },
+  NPL: { code: "NP", name: "Nepal", flag: "\u{1F1F3}\u{1F1F5}" },
+
+  // Sri Lanka
+  LK: { code: "LK", name: "Sri Lanka", flag: "\u{1F1F1}\u{1F1F0}" },
+  "SRI LANKA": { code: "LK", name: "Sri Lanka", flag: "\u{1F1F1}\u{1F1F0}" },
+  SRILANKA: { code: "LK", name: "Sri Lanka", flag: "\u{1F1F1}\u{1F1F0}" },
+  LKA: { code: "LK", name: "Sri Lanka", flag: "\u{1F1F1}\u{1F1F0}" },
+
+  // Myanmar
+  MM: { code: "MM", name: "Myanmar", flag: "\u{1F1F2}\u{1F1F2}" },
+  MYANMAR: { code: "MM", name: "Myanmar", flag: "\u{1F1F2}\u{1F1F2}" },
+  BURMA: { code: "MM", name: "Myanmar", flag: "\u{1F1F2}\u{1F1F2}" },
+  MMR: { code: "MM", name: "Myanmar", flag: "\u{1F1F2}\u{1F1F2}" },
+
+  // Cambodia
+  KH: { code: "KH", name: "Cambodia", flag: "\u{1F1F0}\u{1F1ED}" },
+  CAMBODIA: { code: "KH", name: "Cambodia", flag: "\u{1F1F0}\u{1F1ED}" },
+  KAMBODSCHA: { code: "KH", name: "Cambodia", flag: "\u{1F1F0}\u{1F1ED}" },
+  KHM: { code: "KH", name: "Cambodia", flag: "\u{1F1F0}\u{1F1ED}" },
+
+  // Mongolia
+  MN: { code: "MN", name: "Mongolia", flag: "\u{1F1F2}\u{1F1F3}" },
+  MONGOLIA: { code: "MN", name: "Mongolia", flag: "\u{1F1F2}\u{1F1F3}" },
+  MONGOLEI: { code: "MN", name: "Mongolia", flag: "\u{1F1F2}\u{1F1F3}" },
+  MNG: { code: "MN", name: "Mongolia", flag: "\u{1F1F2}\u{1F1F3}" },
+
+  // Kazakhstan
+  KZ: { code: "KZ", name: "Kazakhstan", flag: "\u{1F1F0}\u{1F1FF}" },
+  KAZAKHSTAN: { code: "KZ", name: "Kazakhstan", flag: "\u{1F1F0}\u{1F1FF}" },
+  KASACHSTAN: { code: "KZ", name: "Kazakhstan", flag: "\u{1F1F0}\u{1F1FF}" },
+  KAZ: { code: "KZ", name: "Kazakhstan", flag: "\u{1F1F0}\u{1F1FF}" },
+
+  // Uzbekistan
+  UZ: { code: "UZ", name: "Uzbekistan", flag: "\u{1F1FA}\u{1F1FF}" },
+  UZBEKISTAN: { code: "UZ", name: "Uzbekistan", flag: "\u{1F1FA}\u{1F1FF}" },
+  USBEKISTAN: { code: "UZ", name: "Uzbekistan", flag: "\u{1F1FA}\u{1F1FF}" },
+  UZB: { code: "UZ", name: "Uzbekistan", flag: "\u{1F1FA}\u{1F1FF}" },
+
+  // Turkmenistan
+  TM: { code: "TM", name: "Turkmenistan", flag: "\u{1F1F9}\u{1F1F2}" },
+  TURKMENISTAN: { code: "TM", name: "Turkmenistan", flag: "\u{1F1F9}\u{1F1F2}" },
+  TKM: { code: "TM", name: "Turkmenistan", flag: "\u{1F1F9}\u{1F1F2}" },
+
+  // Kyrgyzstan
+  KG: { code: "KG", name: "Kyrgyzstan", flag: "\u{1F1F0}\u{1F1EC}" },
+  KYRGYZSTAN: { code: "KG", name: "Kyrgyzstan", flag: "\u{1F1F0}\u{1F1EC}" },
+  KIRGISTAN: { code: "KG", name: "Kyrgyzstan", flag: "\u{1F1F0}\u{1F1EC}" },
+  KGZ: { code: "KG", name: "Kyrgyzstan", flag: "\u{1F1F0}\u{1F1EC}" },
+
+  // Tajikistan
+  TJ: { code: "TJ", name: "Tajikistan", flag: "\u{1F1F9}\u{1F1EF}" },
+  TAJIKISTAN: { code: "TJ", name: "Tajikistan", flag: "\u{1F1F9}\u{1F1EF}" },
+  TADSCHIKISTAN: { code: "TJ", name: "Tajikistan", flag: "\u{1F1F9}\u{1F1EF}" },
+  TJK: { code: "TJ", name: "Tajikistan", flag: "\u{1F1F9}\u{1F1EF}" },
+
+  // Kenya
+  KE: { code: "KE", name: "Kenya", flag: "\u{1F1F0}\u{1F1EA}" },
+  KENYA: { code: "KE", name: "Kenya", flag: "\u{1F1F0}\u{1F1EA}" },
+  KENIA: { code: "KE", name: "Kenya", flag: "\u{1F1F0}\u{1F1EA}" },
+  KEN: { code: "KE", name: "Kenya", flag: "\u{1F1F0}\u{1F1EA}" },
+
+  // Ethiopia
+  ET: { code: "ET", name: "Ethiopia", flag: "\u{1F1EA}\u{1F1F9}" },
+  ETHIOPIA: { code: "ET", name: "Ethiopia", flag: "\u{1F1EA}\u{1F1F9}" },
+  "ÄTHIOPIEN": { code: "ET", name: "Ethiopia", flag: "\u{1F1EA}\u{1F1F9}" },
+  ETH: { code: "ET", name: "Ethiopia", flag: "\u{1F1EA}\u{1F1F9}" },
+
+  // Ghana
+  GH: { code: "GH", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}" },
+  GHANA: { code: "GH", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}" },
+  GHA: { code: "GH", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}" },
+
+  // Cameroon
+  CM: { code: "CM", name: "Cameroon", flag: "\u{1F1E8}\u{1F1F2}" },
+  CAMEROON: { code: "CM", name: "Cameroon", flag: "\u{1F1E8}\u{1F1F2}" },
+  KAMERUN: { code: "CM", name: "Cameroon", flag: "\u{1F1E8}\u{1F1F2}" },
+  CMR: { code: "CM", name: "Cameroon", flag: "\u{1F1E8}\u{1F1F2}" },
+
+  // Senegal
+  SN: { code: "SN", name: "Senegal", flag: "\u{1F1F8}\u{1F1F3}" },
+  SENEGAL: { code: "SN", name: "Senegal", flag: "\u{1F1F8}\u{1F1F3}" },
+  SEN: { code: "SN", name: "Senegal", flag: "\u{1F1F8}\u{1F1F3}" },
+
+  // Somalia
+  SO: { code: "SO", name: "Somalia", flag: "\u{1F1F8}\u{1F1F4}" },
+  SOMALIA: { code: "SO", name: "Somalia", flag: "\u{1F1F8}\u{1F1F4}" },
+  SOM: { code: "SO", name: "Somalia", flag: "\u{1F1F8}\u{1F1F4}" },
+
+  // Sudan
+  SD: { code: "SD", name: "Sudan", flag: "\u{1F1F8}\u{1F1E9}" },
+  SUDAN: { code: "SD", name: "Sudan", flag: "\u{1F1F8}\u{1F1E9}" },
+  SDN: { code: "SD", name: "Sudan", flag: "\u{1F1F8}\u{1F1E9}" },
+
+  // Libya
+  LY: { code: "LY", name: "Libya", flag: "\u{1F1F1}\u{1F1FE}" },
+  LIBYA: { code: "LY", name: "Libya", flag: "\u{1F1F1}\u{1F1FE}" },
+  LIBYEN: { code: "LY", name: "Libya", flag: "\u{1F1F1}\u{1F1FE}" },
+  LBY: { code: "LY", name: "Libya", flag: "\u{1F1F1}\u{1F1FE}" },
+
+  // Yemen
+  YE: { code: "YE", name: "Yemen", flag: "\u{1F1FE}\u{1F1EA}" },
+  YEMEN: { code: "YE", name: "Yemen", flag: "\u{1F1FE}\u{1F1EA}" },
+  JEMEN: { code: "YE", name: "Yemen", flag: "\u{1F1FE}\u{1F1EA}" },
+  YEM: { code: "YE", name: "Yemen", flag: "\u{1F1FE}\u{1F1EA}" },
+
+  // Oman
+  OM: { code: "OM", name: "Oman", flag: "\u{1F1F4}\u{1F1F2}" },
+  OMAN: { code: "OM", name: "Oman", flag: "\u{1F1F4}\u{1F1F2}" },
+  OMN: { code: "OM", name: "Oman", flag: "\u{1F1F4}\u{1F1F2}" },
+
+  // Bahrain
+  BH: { code: "BH", name: "Bahrain", flag: "\u{1F1E7}\u{1F1ED}" },
+  BAHRAIN: { code: "BH", name: "Bahrain", flag: "\u{1F1E7}\u{1F1ED}" },
+  BHR: { code: "BH", name: "Bahrain", flag: "\u{1F1E7}\u{1F1ED}" },
+
+  // Palestine
+  PS: { code: "PS", name: "Palestine", flag: "\u{1F1F5}\u{1F1F8}" },
+  PALESTINE: { code: "PS", name: "Palestine", flag: "\u{1F1F5}\u{1F1F8}" },
+  "PALÄSTINA": { code: "PS", name: "Palestine", flag: "\u{1F1F5}\u{1F1F8}" },
+  PSE: { code: "PS", name: "Palestine", flag: "\u{1F1F5}\u{1F1F8}" },
+
+  // Cuba
+  CU: { code: "CU", name: "Cuba", flag: "\u{1F1E8}\u{1F1FA}" },
+  CUBA: { code: "CU", name: "Cuba", flag: "\u{1F1E8}\u{1F1FA}" },
+  KUBA: { code: "CU", name: "Cuba", flag: "\u{1F1E8}\u{1F1FA}" },
+  CUB: { code: "CU", name: "Cuba", flag: "\u{1F1E8}\u{1F1FA}" },
+
+  // Dominican Republic
+  DO: { code: "DO", name: "Dominican Republic", flag: "\u{1F1E9}\u{1F1F4}" },
+  "DOMINICAN REPUBLIC": { code: "DO", name: "Dominican Republic", flag: "\u{1F1E9}\u{1F1F4}" },
+  DOM: { code: "DO", name: "Dominican Republic", flag: "\u{1F1E9}\u{1F1F4}" },
+
+  // Costa Rica
+  CR: { code: "CR", name: "Costa Rica", flag: "\u{1F1E8}\u{1F1F7}" },
+  "COSTA RICA": { code: "CR", name: "Costa Rica", flag: "\u{1F1E8}\u{1F1F7}" },
+  CRI: { code: "CR", name: "Costa Rica", flag: "\u{1F1E8}\u{1F1F7}" },
+
+  // Panama
+  PA: { code: "PA", name: "Panama", flag: "\u{1F1F5}\u{1F1E6}" },
+  PANAMA: { code: "PA", name: "Panama", flag: "\u{1F1F5}\u{1F1E6}" },
+  PAN: { code: "PA", name: "Panama", flag: "\u{1F1F5}\u{1F1E6}" },
+
+  // Peru
+  PE: { code: "PE", name: "Peru", flag: "\u{1F1F5}\u{1F1EA}" },
+  PERU: { code: "PE", name: "Peru", flag: "\u{1F1F5}\u{1F1EA}" },
+  PER: { code: "PE", name: "Peru", flag: "\u{1F1F5}\u{1F1EA}" },
+
+  // Venezuela
+  VE: { code: "VE", name: "Venezuela", flag: "\u{1F1FB}\u{1F1EA}" },
+  VENEZUELA: { code: "VE", name: "Venezuela", flag: "\u{1F1FB}\u{1F1EA}" },
+  VEN: { code: "VE", name: "Venezuela", flag: "\u{1F1FB}\u{1F1EA}" },
+
+  // Ecuador
+  EC: { code: "EC", name: "Ecuador", flag: "\u{1F1EA}\u{1F1E8}" },
+  ECUADOR: { code: "EC", name: "Ecuador", flag: "\u{1F1EA}\u{1F1E8}" },
+  ECU: { code: "EC", name: "Ecuador", flag: "\u{1F1EA}\u{1F1E8}" },
+
+  // Bolivia
+  BO: { code: "BO", name: "Bolivia", flag: "\u{1F1E7}\u{1F1F4}" },
+  BOLIVIA: { code: "BO", name: "Bolivia", flag: "\u{1F1E7}\u{1F1F4}" },
+  BOLIVIEN: { code: "BO", name: "Bolivia", flag: "\u{1F1E7}\u{1F1F4}" },
+  BOL: { code: "BO", name: "Bolivia", flag: "\u{1F1E7}\u{1F1F4}" },
+
+  // Paraguay
+  PY: { code: "PY", name: "Paraguay", flag: "\u{1F1F5}\u{1F1FE}" },
+  PARAGUAY: { code: "PY", name: "Paraguay", flag: "\u{1F1F5}\u{1F1FE}" },
+  PRY: { code: "PY", name: "Paraguay", flag: "\u{1F1F5}\u{1F1FE}" },
+
+  // Uruguay
+  UY: { code: "UY", name: "Uruguay", flag: "\u{1F1FA}\u{1F1FE}" },
+  URUGUAY: { code: "UY", name: "Uruguay", flag: "\u{1F1FA}\u{1F1FE}" },
+  URY: { code: "UY", name: "Uruguay", flag: "\u{1F1FA}\u{1F1FE}" },
+
+  // Jamaica
+  JM: { code: "JM", name: "Jamaica", flag: "\u{1F1EF}\u{1F1F2}" },
+  JAMAICA: { code: "JM", name: "Jamaica", flag: "\u{1F1EF}\u{1F1F2}" },
+  JAMAIKA: { code: "JM", name: "Jamaica", flag: "\u{1F1EF}\u{1F1F2}" },
+  JAM: { code: "JM", name: "Jamaica", flag: "\u{1F1EF}\u{1F1F2}" },
+
+  // Moldova
+  MD: { code: "MD", name: "Moldova", flag: "\u{1F1F2}\u{1F1E9}" },
+  MOLDOVA: { code: "MD", name: "Moldova", flag: "\u{1F1F2}\u{1F1E9}" },
+  MOLDAWIEN: { code: "MD", name: "Moldova", flag: "\u{1F1F2}\u{1F1E9}" },
+  MDA: { code: "MD", name: "Moldova", flag: "\u{1F1F2}\u{1F1E9}" },
+
+  // Belarus
+  BY: { code: "BY", name: "Belarus", flag: "\u{1F1E7}\u{1F1FE}" },
+  BELARUS: { code: "BY", name: "Belarus", flag: "\u{1F1E7}\u{1F1FE}" },
+  WEISSRUSSLAND: { code: "BY", name: "Belarus", flag: "\u{1F1E7}\u{1F1FE}" },
+  BLR: { code: "BY", name: "Belarus", flag: "\u{1F1E7}\u{1F1FE}" },
+
+  // North Korea
+  KP: { code: "KP", name: "North Korea", flag: "\u{1F1F0}\u{1F1F5}" },
+  "NORTH KOREA": { code: "KP", name: "North Korea", flag: "\u{1F1F0}\u{1F1F5}" },
+  NORDKOREA: { code: "KP", name: "North Korea", flag: "\u{1F1F0}\u{1F1F5}" },
+  PRK: { code: "KP", name: "North Korea", flag: "\u{1F1F0}\u{1F1F5}" },
+
+  // Laos
+  LA: { code: "LA", name: "Laos", flag: "\u{1F1F1}\u{1F1E6}" },
+  LAOS: { code: "LA", name: "Laos", flag: "\u{1F1F1}\u{1F1E6}" },
+  LAO: { code: "LA", name: "Laos", flag: "\u{1F1F1}\u{1F1E6}" },
+
+  // Maldives
+  MV: { code: "MV", name: "Maldives", flag: "\u{1F1F2}\u{1F1FB}" },
+  MALDIVES: { code: "MV", name: "Maldives", flag: "\u{1F1F2}\u{1F1FB}" },
+  MALEDIVEN: { code: "MV", name: "Maldives", flag: "\u{1F1F2}\u{1F1FB}" },
+  MDV: { code: "MV", name: "Maldives", flag: "\u{1F1F2}\u{1F1FB}" },
+
   // Kurdish
   KURDISH: { code: "KU", name: "Kurdish", flag: "\u{1F3F3}\u{FE0F}" },
   KURD: { code: "KU", name: "Kurdish", flag: "\u{1F3F3}\u{FE0F}" },
@@ -629,12 +857,44 @@ export function extractCountryFromGroup(
 }
 
 /**
+ * Generate flag emoji from any ISO 2-letter country code.
+ * Works for ALL countries - no lookup table needed.
+ */
+export function codeToFlag(code: string): string {
+  if (!code || code.length !== 2) return "\u{1F3F3}\u{FE0F}";
+  const upper = code.toUpperCase();
+  const a = 0x1F1E6;
+  return String.fromCodePoint(
+    a + upper.charCodeAt(0) - 65,
+    a + upper.charCodeAt(1) - 65
+  );
+}
+
+/**
  * Get a country flag emoji from a country code.
+ * Falls back to auto-generated flag for unknown codes.
  */
 export function getCountryFlag(code: string): string {
   const upper = code.toUpperCase();
   const info = COUNTRY_MAP[upper];
-  return info?.flag ?? "\u{1F3F3}\u{FE0F}";
+  if (info) return info.flag;
+  // Auto-generate flag for any 2-letter ISO code
+  if (upper.length === 2 && /^[A-Z]{2}$/.test(upper)) return codeToFlag(upper);
+  return "\u{1F3F3}\u{FE0F}";
+}
+
+/**
+ * Look up country info, auto-creating entry for unknown 2-letter codes.
+ */
+export function getCountryInfo(code: string): CountryInfo {
+  const upper = code.toUpperCase();
+  const info = COUNTRY_MAP[upper];
+  if (info) return info;
+  // Auto-generate for unknown 2-letter codes
+  if (upper.length === 2 && /^[A-Z]{2}$/.test(upper)) {
+    return { code: upper, name: upper, flag: codeToFlag(upper) };
+  }
+  return { code: upper, name: upper, flag: "\u{1F310}" };
 }
 
 /**
