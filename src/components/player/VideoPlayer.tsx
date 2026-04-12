@@ -172,6 +172,21 @@ export default function VideoPlayer({
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
+        // Check for IPTV-specific HTTP errors
+        const httpStatus = data.response?.code;
+        if (httpStatus === 456) {
+          destroyHls();
+          setError("Stream blockiert (Fehler 456). Dein IPTV-Anbieter hat den Zugang gesperrt. Bitte prüfe dein Abo oder kontaktiere den Anbieter.");
+          setIsBuffering(false);
+          return;
+        }
+        if (httpStatus === 458) {
+          destroyHls();
+          setError("Maximale Verbindungen erreicht (Fehler 458). Bitte melde andere Geräte ab.");
+          setIsBuffering(false);
+          return;
+        }
+
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
@@ -213,7 +228,7 @@ export default function VideoPlayer({
         const tsUrl = src.replace(/\.m3u8$/, ".ts");
         video.onerror = () => {
           video.onerror = null;
-          setError("Stream konnte nicht geladen werden. Bitte prüfe die Playlist-Daten.");
+          setError("Stream konnte nicht geladen werden. Mögliche Ursachen: Stream blockiert (456), maximale Verbindungen erreicht, oder ungültige Playlist-Daten.");
           setIsBuffering(false);
         };
         video.src = proxyUrl(tsUrl);

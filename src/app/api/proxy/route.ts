@@ -26,10 +26,18 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeout);
 
     if (!response.ok) {
-      return new NextResponse(`Upstream error: ${response.status}`, {
+      // Provide meaningful error info for IPTV-specific status codes
+      let errorDetail = `Upstream error: ${response.status}`;
+      if (response.status === 456) {
+        errorDetail = "STREAM_BLOCKED_456";
+      } else if (response.status === 458) {
+        errorDetail = "MAX_CONNECTIONS_458";
+      }
+      return new NextResponse(errorDetail, {
         status: response.status,
         headers: {
           "Access-Control-Allow-Origin": "*",
+          "X-IPTV-Error": errorDetail,
         },
       });
     }
