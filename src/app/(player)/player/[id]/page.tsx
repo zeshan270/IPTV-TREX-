@@ -36,8 +36,8 @@ export default function PlayerPage() {
   const [channelNumberInput, setChannelNumberInput] = useState("");
   const channelNumberTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keyboard shortcuts overlay
-  const [showShortcuts, setShowShortcuts] = useState(true);
+  // Channel name for EPG display
+  const [currentChannelName, setCurrentChannelName] = useState("");
 
   const isXtream = credentials && "serverUrl" in credentials;
   const creds = credentials as { serverUrl: string; username: string; password: string } | null;
@@ -92,22 +92,14 @@ export default function PlayerPage() {
       .catch(() => setEpgPrograms([]));
   }, [id, type, isXtream, creds]);
 
-  // Auto-hide EPG after a few seconds
+  // Always show EPG on channel switch, auto-hide after 8s
   useEffect(() => {
-    if (epgPrograms.length > 0) {
-      setShowEpg(true);
-      const timer = setTimeout(() => setShowEpg(false), 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [epgPrograms]);
-
-  // Auto-hide keyboard shortcuts overlay
-  useEffect(() => {
-    if (showShortcuts) {
-      const timer = setTimeout(() => setShowShortcuts(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showShortcuts]);
+    const name = currentChannel?.name || nameParam || "";
+    setCurrentChannelName(name);
+    setShowEpg(true);
+    const timer = setTimeout(() => setShowEpg(false), 8000);
+    return () => clearTimeout(timer);
+  }, [id, currentChannel?.name, nameParam]);
 
   // Number key channel switching
   useEffect(() => {
@@ -142,10 +134,6 @@ export default function PlayerPage() {
         });
       }
 
-      // Show shortcuts on '?' press
-      if (key === "?") {
-        setShowShortcuts(true);
-      }
     };
 
     window.addEventListener("keydown", handleNumberKey);
@@ -257,28 +245,11 @@ export default function PlayerPage() {
         </div>
       )}
 
-      {/* Keyboard shortcuts overlay */}
-      {showShortcuts && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur-sm rounded-xl px-6 py-4 border border-white/10 transition-opacity duration-500">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 text-center">
-            Keyboard Shortcuts
-          </p>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/80 justify-center">
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">Space</kbd> Play/Pause</span>
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">F</kbd> Fullscreen</span>
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">M</kbd> Mute</span>
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">&#x2190;&#x2192;</kbd> Seek</span>
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">&#x2191;&#x2193;</kbd> Volume</span>
-            <span><kbd className="bg-white/10 px-1.5 py-0.5 rounded text-xs">0-9</kbd> Channel</span>
-          </div>
-        </div>
-      )}
-
-      {/* EPG overlay */}
+      {/* EPG overlay - always shows on channel switch */}
       {type === "live" && (
         <EpgOverlay
           programs={epgPrograms}
-          channelName={currentChannel?.name}
+          channelName={currentChannelName}
           isVisible={showEpg}
         />
       )}

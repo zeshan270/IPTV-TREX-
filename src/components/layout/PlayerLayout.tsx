@@ -114,14 +114,14 @@ export default function PlayerLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-[#0f0f1a]">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-20 lg:w-72 flex-col border-r border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
+      <aside className="hidden lg:flex w-20 lg:w-72 flex-col border-r border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
         {/* Logo */}
         <div className="flex h-16 items-center justify-center lg:justify-start lg:px-6 border-b border-[#2a2a45]">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
               <span className="text-sm font-bold text-white">T</span>
             </div>
-            <span className="hidden lg:block text-lg font-bold gradient-text">IPTV TREX</span>
+            <span className="hidden xl:block text-lg font-bold gradient-text">IPTV TREX</span>
           </Link>
         </div>
 
@@ -140,12 +140,12 @@ export default function PlayerLayout({
         <div className="border-t border-[#2a2a45] p-3 lg:p-4 space-y-2">
           {(playlistName || serverHost) && (
             <div className="rounded-lg bg-indigo-500/10 p-2 lg:p-3">
-              <p className="hidden lg:block text-[10px] uppercase tracking-wider text-indigo-400 mb-1">Aktive Playlist</p>
+              <p className="hidden xl:block text-[10px] uppercase tracking-wider text-indigo-400 mb-1">Aktive Playlist</p>
               <p className="text-xs text-indigo-300 font-medium text-center lg:text-left truncate">{playlistName || serverHost}</p>
             </div>
           )}
           <div className="rounded-lg bg-[#1a1a2e] p-2 lg:p-3">
-            <p className="hidden lg:block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Geräte-MAC</p>
+            <p className="hidden xl:block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Geräte-MAC</p>
             <p className="text-[10px] lg:text-xs text-gray-400 font-mono text-center lg:text-left truncate">{macAddress || "00:00:00:00:00:00"}</p>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function PlayerLayout({
 
       {/* Mobile hamburger menu overlay */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="lg:hidden fixed inset-0 z-50">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
 
@@ -204,7 +204,7 @@ export default function PlayerLayout({
       )}
 
       {/* Mobile top bar with hamburger */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 border-b border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 border-b border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
         <button
           onClick={() => setMenuOpen(true)}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:ring-4 focus-visible:ring-blue-400"
@@ -229,7 +229,7 @@ export default function PlayerLayout({
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">{children}</main>
+      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">{children}</main>
     </div>
   );
 }

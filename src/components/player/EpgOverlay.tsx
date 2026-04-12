@@ -23,7 +23,9 @@ export default function EpgOverlay({
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
-  if (!isVisible || programs.length === 0) return null;
+  if (!isVisible) return null;
+  // Show overlay with just channel name even when no EPG data
+  if (programs.length === 0 && !channelName) return null;
 
   const now = Date.now();
   const current = programs.find((p) => {
@@ -131,6 +133,15 @@ export default function EpgOverlay({
               isFullscreen ? "text-base" : "text-sm"
             )}>{next.title}</p>
           </div>
+        )}
+
+        {programs.length === 0 && (
+          <p className={clsx(
+            "text-gray-500 italic",
+            isFullscreen ? "text-sm" : "text-xs"
+          )}>
+            Keine EPG-Daten verfügbar
+          </p>
         )}
       </div>
     </div>
