@@ -58,8 +58,15 @@ function buildCacheKey(creds: XtreamCredentials, action: string, extra?: string)
   return `${creds.serverUrl}:${creds.username}:${action}${extra ? `:${extra}` : ""}`;
 }
 
+/**
+ * Fetch JSON from a URL, using the proxy if the URL is HTTP (to avoid mixed content on HTTPS pages).
+ */
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  // Use proxy for HTTP URLs when running on HTTPS to avoid mixed content blocking
+  const needsProxy = typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http:");
+  const fetchUrl = needsProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+
+  const res = await fetch(fetchUrl);
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   }
@@ -143,7 +150,7 @@ export async function fetchLiveStreams(
     name: String(s.name ?? ""),
     logo: String(s.stream_icon ?? ""),
     group: String(s.category_id ?? ""),
-    url: buildStreamUrl(creds, Number(s.stream_id), "live", "ts"),
+    url: buildStreamUrl(creds, Number(s.stream_id), "live", "m3u8"),
     tvgId: String(s.epg_channel_id ?? ""),
     tvgName: String(s.name ?? ""),
     epgChannelId: String(s.epg_channel_id ?? ""),
@@ -318,7 +325,7 @@ export function buildStreamUrl(
   const u = encodeURIComponent(creds.username);
   const p = encodeURIComponent(creds.password);
   if (type === "live") {
-    const ext = extension || "ts";
+    const ext = extension || "m3u8";
     return `${base}/live/${u}/${p}/${streamId}.${ext}`;
   }
   if (type === "movie") {

@@ -71,7 +71,7 @@ export default function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
 
-  const isHLS = src.includes(".m3u8");
+  const isHLS = src.includes(".m3u8") || src.includes("m3u8");
   const isLive = !duration || duration === Infinity;
 
   // Initialize player
@@ -118,6 +118,11 @@ export default function VideoPlayer({
       }
 
       setLoadingStatus("Lade Stream (HLS)...");
+
+      // Proxy the m3u8 URL upfront - this is crucial for CORS bypass
+      // The proxy will rewrite segment URLs inside the manifest to also use the proxy
+      const proxiedSrc = proxyUrl(src);
+
       const hls = new Hls({
         maxBufferLength: 10,
         maxMaxBufferLength: 30,
@@ -126,24 +131,16 @@ export default function VideoPlayer({
         lowLatencyMode: true,
         startFragPrefetch: true,
         enableWorker: true,
-        fragLoadingTimeOut: 10000,
-        manifestLoadingTimeOut: 8000,
-        levelLoadingTimeOut: 8000,
-        fragLoadingMaxRetry: 3,
-        manifestLoadingMaxRetry: 3,
-        levelLoadingMaxRetry: 3,
-        // Use proxy for all XHR requests to bypass CORS
-        xhrSetup: (xhr, url) => {
-          // If URL is already proxied or is a relative/local URL, don't proxy again
-          if (url.startsWith("/api/proxy") || url.startsWith("blob:")) {
-            xhr.open("GET", url, true);
-          } else {
-            xhr.open("GET", proxyUrl(url), true);
-          }
-        },
+        fragLoadingTimeOut: 15000,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 4,
+        manifestLoadingMaxRetry: 4,
+        levelLoadingMaxRetry: 4,
       });
 
-      hls.loadSource(src);
+      // Load the proxied URL - the proxy rewrites all segment URLs inside the m3u8
+      hls.loadSource(proxiedSrc);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -202,22 +199,19 @@ export default function VideoPlayer({
     };
 
     const tryTsFallback = () => {
-      // Try .ts format instead of .m3u8
-      const tsUrl = src.replace(/\.m3u8$/, ".ts");
-      setLoadingStatus("Lade Stream (.ts)...");
+      // Try .ts format via proxy (direct .ts won't work on Vercel due to timeout for live)
+      // Instead, try loading the m3u8 directly through the proxy without HLS.js (Safari)
+      setLoadingStatus("Versuche alternatives Format...");
 
-      // Try direct first
-      video.src = tsUrl;
+      // For Safari or direct playback: try proxied m3u8
+      video.src = proxyUrl(src);
       video.onerror = () => {
-        // Try proxied .ts
+        // Last resort: try .ts through proxy (only works for VOD, not live)
+        const tsUrl = src.replace(/\.m3u8$/, ".ts");
         video.onerror = () => {
-          // Try proxied original URL
           video.onerror = null;
-          video.src = proxyUrl(src);
-          if (autoPlay) video.play().catch(() => {
-            setError("Stream konnte nicht geladen werden. Bitte prüfe die Playlist-Daten.");
-            setIsBuffering(false);
-          });
+          setError("Stream konnte nicht geladen werden. Bitte prüfe die Playlist-Daten.");
+          setIsBuffering(false);
         };
         video.src = proxyUrl(tsUrl);
         if (autoPlay) video.play().catch(() => {});
@@ -228,20 +222,21 @@ export default function VideoPlayer({
     if (isHLS) {
       tryHlsProxy();
     } else {
-      // Non-HLS (MP4, TS, etc.) - try direct, then proxy
-      tryDirectPlay();
-
-      // Set up fallback on error
-      const origOnError = video.onerror;
+      // Non-HLS (MP4, MKV, etc.) - use proxy directly to avoid mixed content
+      // Since our app is HTTPS and IPTV servers are HTTP, always proxy
+      setLoadingStatus("Lade Stream...");
+      video.src = proxyUrl(src);
       video.onerror = () => {
-        video.onerror = origOnError;
-        setLoadingStatus("Versuche Proxy...");
-        video.src = proxyUrl(src);
-        if (autoPlay) video.play().catch(() => {
+        // Fallback: try direct (in case proxy fails but direct works)
+        video.onerror = () => {
+          video.onerror = null;
           setError("Stream konnte nicht geladen werden.");
           setIsBuffering(false);
-        });
+        };
+        video.src = src;
+        if (autoPlay) video.play().catch(() => {});
       };
+      if (autoPlay) video.play().catch(() => {});
     }
 
     return () => {
