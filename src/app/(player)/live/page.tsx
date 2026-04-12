@@ -185,12 +185,16 @@ export default function LiveTVPage() {
       });
   }, [credentials, isXtream]);
 
-  // Load channels for selected category
+  // Load channels only when a specific category is selected
   useEffect(() => {
     if (!isXtream || !credentials) return;
+    if (!selectedCategory) {
+      setChannels([]);
+      return;
+    }
     const creds = credentials as { serverUrl: string; username: string; password: string };
     setLoadingChannels(true);
-    fetchLiveStreams(creds, selectedCategory ?? undefined)
+    fetchLiveStreams(creds, selectedCategory)
       .then((streams) => {
         setChannels(streams);
         setPlaylist(streams);
@@ -448,17 +452,23 @@ export default function LiveTVPage() {
 
       {/* Channels grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {loadingChannels ? (
+        {!selectedCategory && !searchQuery && !showFavoritesOnly ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <HiSignal className="h-16 w-16 text-gray-600 mb-4" />
+            <p className="text-lg text-gray-400">Kategorie auswählen</p>
+            <p className="text-sm text-gray-500 mt-1">Wähle ein Land und eine Kategorie um Kanäle zu laden</p>
+          </div>
+        ) : loadingChannels ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Loading channels..." />
+            <LoadingSpinner text="Lade Kanäle..." />
           </div>
         ) : filteredChannels.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiSignal className="h-16 w-16 text-gray-600 mb-4" />
             <p className="text-lg text-gray-400">
               {showFavoritesOnly
-                ? "No favorite channels yet. Add some by tapping the heart icon!"
-                : "No channels found"}
+                ? "Noch keine Favoriten. Tippe auf das Herz-Symbol um Kanäle hinzuzufügen!"
+                : "Keine Kanäle gefunden"}
             </p>
           </div>
         ) : (
