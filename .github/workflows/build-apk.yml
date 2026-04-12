@@ -18,6 +18,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Generate Keystore
         working-directory: android-twa
         run: |
@@ -26,27 +29,18 @@ jobs:
             -storepass iptvtrex123 -keypass iptvtrex123 \
             -dname "CN=IPTV TREX, OU=App, O=IPTVTREX, L=Berlin, ST=Berlin, C=DE"
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build Debug APK
+      - name: Build APK
         working-directory: android-twa
+        env:
+          KEYSTORE_PASSWORD: iptvtrex123
+          KEY_PASSWORD: iptvtrex123
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Build Release APK
-        working-directory: android-twa
-        run: ./gradlew assembleRelease
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: iptv-trex-debug
-          path: android-twa/app/build/outputs/apk/debug/*.apk
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: iptv-trex-release
           path: android-twa/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
