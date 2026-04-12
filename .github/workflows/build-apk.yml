@@ -21,6 +21,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android Build Tools
+        run: sdkmanager "build-tools;34.0.0" "platforms;android-34"
+
       - name: Generate Keystore
         working-directory: android-twa
         run: |
@@ -29,14 +32,17 @@ jobs:
             -storepass iptvtrex123 -keypass iptvtrex123 \
             -dname "CN=IPTV TREX, OU=App, O=IPTVTREX, L=Berlin, ST=Berlin, C=DE"
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
       - name: Build APK
         working-directory: android-twa
         env:
           KEYSTORE_PASSWORD: iptvtrex123
           KEY_PASSWORD: iptvtrex123
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
