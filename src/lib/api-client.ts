@@ -338,7 +338,12 @@ export async function fetchEpg(
 
 function safeAtob(str: string): string {
   try {
-    return atob(str);
+    // atob() decodes Base64 to Latin-1 bytes. For UTF-8 content (ä, ö, ü etc.)
+    // we must re-decode the byte string as UTF-8.
+    const bytes = atob(str);
+    const uint8 = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) uint8[i] = bytes.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(uint8);
   } catch {
     return str;
   }

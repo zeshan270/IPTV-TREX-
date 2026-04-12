@@ -14,7 +14,18 @@ import {
   HiChevronDown,
   HiArrowPath,
   HiCog6Tooth,
+  HiSun,
 } from "react-icons/hi2";
+
+// Persist volume across sessions
+function loadSavedVolume(): number {
+  if (typeof window === "undefined") return 1;
+  const saved = localStorage.getItem("iptv-trex-volume");
+  return saved ? Math.max(0, Math.min(1, Number(saved))) : 1;
+}
+function saveVolume(v: number) {
+  if (typeof window !== "undefined") localStorage.setItem("iptv-trex-volume", String(v));
+}
 
 type AspectRatio = "16:9" | "4:3" | "fill";
 
@@ -66,7 +77,7 @@ export default function VideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(loadSavedVolume);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -79,6 +90,13 @@ export default function VideoPlayer({
   const [selectedSubtitle, setSelectedSubtitle] = useState(-1);
   const [showSettings, setShowSettings] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
+  const [brightness, setBrightness] = useState(1);
+  const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness"; value: number } | null>(null);
+
+  // Touch gesture tracking
+  const touchRef = useRef<{ startX: number; startY: number; startVol: number; startBright: number; side: "left" | "right" | null; swiping: boolean }>({
+    startX: 0, startY: 0, startVol: 1, startBright: 1, side: null, swiping: false,
+  });
 
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
   const isLive = !duration || duration === Infinity;
@@ -333,7 +351,11 @@ export default function VideoPlayer({
     const onVolumeChange = () => {
       setVolume(video.volume);
       setIsMuted(video.muted);
+      saveVolume(video.volume);
     };
+
+    // Restore persisted volume
+    video.volume = loadSavedVolume();
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
@@ -497,6 +519,66 @@ export default function VideoPlayer({
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  // Touch gesture handlers for volume (right) and brightness (left)
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const relX = touch.clientX - rect.left;
+    const side = relX < rect.width / 2 ? "left" : "right";
+    touchRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startVol: volume,
+      startBright: brightness,
+      side,
+      swiping: false,
+    };
+  }, [volume, brightness]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const t = touchRef.current;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const deltaY = t.startY - touch.clientY;
+    const deltaX = Math.abs(touch.clientX - t.startX);
+    // Only activate vertical swipe if vertical movement > horizontal and > 10px threshold
+    if (Math.abs(deltaY) < 10 || deltaX > Math.abs(deltaY)) return;
+
+    t.swiping = true;
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const sensitivity = deltaY / (rect.height * 0.6); // 60% of height = full range
+
+    if (t.side === "right") {
+      // Volume control
+      const newVol = Math.max(0, Math.min(1, t.startVol + sensitivity));
+      const video = videoRef.current;
+      if (video) { video.volume = newVol; if (video.muted && newVol > 0) video.muted = false; }
+      setVolume(newVol);
+      setSwipeIndicator({ type: "volume", value: newVol });
+    } else {
+      // Brightness control
+      const newBright = Math.max(0.1, Math.min(1, t.startBright + sensitivity));
+      setBrightness(newBright);
+      setSwipeIndicator({ type: "brightness", value: newBright });
+    }
+    resetHideTimer();
+  }, [resetHideTimer]);
+
+  const handleTouchEnd = useCallback(() => {
+    const wasSwiping = touchRef.current.swiping;
+    touchRef.current.swiping = false;
+    touchRef.current.side = null;
+    // Hide indicator after a short delay
+    setTimeout(() => setSwipeIndicator(null), 500);
+    // If it was just a tap (no swipe), show/hide controls
+    if (!wasSwiping) resetHideTimer();
+  }, [resetHideTimer]);
+
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const aspectClass =
@@ -509,14 +591,43 @@ export default function VideoPlayer({
       ref={containerRef}
       className="relative w-full h-full bg-black select-none group"
       onMouseMove={resetHideTimer}
-      onClick={() => { if (!showSettings) togglePlayPause(); }}
+      onClick={() => { if (!showSettings) resetHideTimer(); }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Video element - NO crossOrigin to avoid CORS issues */}
       <video
         ref={videoRef}
         className={clsx("w-full h-full", aspectClass)}
+        style={{ filter: `brightness(${brightness})` }}
         playsInline
       />
+
+      {/* Swipe gesture indicator */}
+      {swipeIndicator && (
+        <div className={clsx(
+          "absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 bg-black/70 rounded-2xl px-4 py-5 backdrop-blur-sm",
+          swipeIndicator.type === "volume" ? "right-8" : "left-8"
+        )}>
+          {swipeIndicator.type === "volume" ? (
+            <HiSpeakerWave className="h-6 w-6 text-white" />
+          ) : (
+            <HiSun className="h-6 w-6 text-yellow-400" />
+          )}
+          <div className="w-1.5 h-28 bg-white/20 rounded-full relative overflow-hidden">
+            <div
+              className={clsx("absolute bottom-0 w-full rounded-full transition-all",
+                swipeIndicator.type === "volume" ? "bg-indigo-500" : "bg-yellow-400"
+              )}
+              style={{ height: `${swipeIndicator.value * 100}%` }}
+            />
+          </div>
+          <span className="text-xs text-white font-medium">
+            {Math.round(swipeIndicator.value * 100)}%
+          </span>
+        </div>
+      )}
 
       {/* Buffering indicator */}
       {isBuffering && !error && (
