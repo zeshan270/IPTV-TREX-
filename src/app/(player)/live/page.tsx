@@ -289,6 +289,7 @@ export default function LiveTVPage() {
   };
 
   const handleCountrySelect = (code: string | null) => {
+    setShowFavoritesOnly(false);
     setSelectedCountry(code);
     setSelectedCategory(null);
     if (code) {
@@ -379,9 +380,8 @@ export default function LiveTVPage() {
           </button>
         </div>
 
-        {/* Country navigation */}
-        {!showFavoritesOnly && (
-          <div className="space-y-3">
+        {/* Country navigation - always visible */}
+        <div className="space-y-3">
             {/* All Countries button + country cards */}
             <div
               ref={countryGridRef}
@@ -469,7 +469,6 @@ export default function LiveTVPage() {
               </div>
             )}
           </div>
-        )}
       </div>
 
       {/* Channels grid */}
