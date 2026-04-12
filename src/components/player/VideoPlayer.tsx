@@ -187,9 +187,26 @@ export default function VideoPlayer({
         setIsBuffering(false);
         setLoadingStatus("");
         // Restore user volume after HLS re-attaches media
-        vid.volume = userVolumeRef.current;
+        const savedVol = userVolumeRef.current;
+        vid.volume = savedVol;
         vid.muted = false;
-        if (autoPlay) vid.play().catch(() => {});
+        if (autoPlay) {
+          vid.play().then(() => {
+            // Re-apply volume AFTER play succeeds (some browsers reset on play)
+            vid.volume = savedVol;
+            vid.muted = false;
+          }).catch(() => {
+            // Autoplay blocked - try muted first, then unmute
+            vid.muted = true;
+            vid.play().then(() => {
+              // Unmute after muted autoplay succeeds
+              setTimeout(() => {
+                vid.volume = savedVol;
+                vid.muted = false;
+              }, 100);
+            }).catch(() => {});
+          });
+        }
 
         setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
         setSubtitleTracks(hls.subtitleTracks.map((t, i) => ({ id: i, name: t.name || `Subtitle ${i + 1}`, lang: t.lang || "" })));
@@ -308,19 +325,32 @@ export default function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    // Volume fix counter - apply volume aggressively for first few seconds after play
+    let volumeFixCount = 0;
     const onPlay = () => {
       setIsPlaying(true); setIsBuffering(false); setLoadingStatus("");
-      // Always restore volume when playback starts (fixes autoplay muting)
+      volumeFixCount = 0;
       applyVolume();
     };
     const onPause = () => setIsPlaying(false);
-    const onTimeUpdate = () => setCurrentTime(video.currentTime);
+    const onTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      // Keep applying volume for first 5 timeupdate events after play
+      if (volumeFixCount < 5 && !video.paused) {
+        volumeFixCount++;
+        const vol = userVolumeRef.current;
+        if (video.volume !== vol || video.muted) {
+          video.volume = vol;
+          video.muted = false;
+        }
+      }
+    };
     const onDurationChange = () => setDuration(video.duration);
     const onWaiting = () => { setIsBuffering(true); setLoadingStatus("Buffering..."); };
-    const onCanPlay = () => { setIsBuffering(false); setLoadingStatus(""); };
+    const onCanPlay = () => { setIsBuffering(false); setLoadingStatus(""); applyVolume(); };
     const onPlaying = () => {
       setIsBuffering(false); setLoadingStatus("");
-      // Double-check volume on playing event too
+      volumeFixCount = 0;
       applyVolume();
     };
     const onError = () => {};
