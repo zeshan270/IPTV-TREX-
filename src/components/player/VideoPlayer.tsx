@@ -132,10 +132,16 @@ export default function VideoPlayer({
     initialSeekDoneRef.current = false;
     retryCountRef.current = 0;
 
+    // Save the user's volume BEFORE any destruction (in case events fire during cleanup)
+    const savedVolume = userVolumeRef.current;
+
     // CRITICAL: Fully stop previous stream before starting new one
     destroyHls();
     video.removeAttribute("src");
     video.load(); // Force browser to release previous connection
+
+    // Restore volume ref in case load() triggered volumechange events
+    userVolumeRef.current = savedVolume;
 
     // Small delay to ensure previous connection is fully released
     const startTimer = setTimeout(() => {
@@ -190,6 +196,20 @@ export default function VideoPlayer({
         const savedVol = userVolumeRef.current;
         vid.volume = savedVol;
         vid.muted = false;
+
+        // AGGRESSIVE volume restore: run every 200ms for 3 seconds after stream load
+        // This catches ALL edge cases where the browser resets volume
+        let volFixAttempts = 0;
+        const volFixInterval = setInterval(() => {
+          volFixAttempts++;
+          const targetVol = userVolumeRef.current;
+          if (vid.volume !== targetVol || vid.muted) {
+            vid.volume = targetVol;
+            vid.muted = false;
+          }
+          if (volFixAttempts >= 15) clearInterval(volFixInterval); // 15 * 200ms = 3s
+        }, 200);
+
         if (autoPlay) {
           vid.play().then(() => {
             // Re-apply volume AFTER play succeeds (some browsers reset on play)
@@ -355,16 +375,22 @@ export default function VideoPlayer({
     };
     const onError = () => {};
     const onVolumeChange = () => {
-      // Only save volume if it's a real user change (not a browser reset to 0)
       const vol = video.volume;
       const muted = video.muted;
       setVolume(vol);
       setIsMuted(muted);
-      // Only persist if volume > 0 or user explicitly set it to 0
-      if (vol > 0) {
+      // Only persist if volume > 0 AND close to a reasonable user-set value
+      // Ignore browser resets (vol=1 when defaulting, vol=0 when muting)
+      // A real user change comes from slider/swipe which set userVolumeRef FIRST
+      if (vol > 0 && vol < 1) {
+        // Non-default value = definitely a user choice
         userVolumeRef.current = vol;
         savePref("volume", vol);
+      } else if (vol === 1 && userVolumeRef.current === 1) {
+        // User had it at max and it stayed at max - fine
+        savePref("volume", vol);
       }
+      // vol=0 or vol=1 when userVolumeRef differs → likely browser reset, ignore
     };
 
     // Restore persisted volume
