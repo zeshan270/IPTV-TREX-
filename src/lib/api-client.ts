@@ -59,7 +59,18 @@ function buildCacheKey(creds: XtreamCredentials, action: string, extra?: string)
 }
 
 /**
+ * Strip lone Unicode surrogates that break JSON serialization.
+ * IPTV servers often return data with invalid Unicode characters.
+ */
+function stripSurrogates(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "\uFFFD")
+             .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "\uFFFD");
+}
+
+/**
  * Fetch JSON from a URL, using the proxy if the URL is HTTP (to avoid mixed content on HTTPS pages).
+ * Sanitizes response text to remove lone surrogates before parsing.
  */
 async function fetchJson<T>(rawUrl: string): Promise<T> {
   const url = rawUrl.trim();
@@ -71,7 +82,9 @@ async function fetchJson<T>(rawUrl: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  const sanitized = stripSurrogates(text);
+  return JSON.parse(sanitized) as T;
 }
 
 export async function xtreamLogin(
@@ -464,7 +477,7 @@ export async function parseM3UFromUrl(
 }
 
 function parseM3UContent(content: string): ParsedM3UResult {
-  const lines = content.split("\n").map((l) => l.trim());
+  const lines = stripSurrogates(content).split("\n").map((l) => l.trim());
   const channels: Channel[] = [];
   let epgUrl: string | null = null;
 

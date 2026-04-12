@@ -121,6 +121,15 @@ export class XtreamClient {
     return url.toString();
   }
 
+  /**
+   * Strip lone Unicode surrogates that break JSON serialization.
+   */
+  private static stripSurrogates(text: string): string {
+    // eslint-disable-next-line no-control-regex
+    return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "\uFFFD")
+               .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "\uFFFD");
+  }
+
   private async fetchApi<T>(action: string, params: Record<string, string> = {}): Promise<T> {
     const url = this.buildApiUrl(action, params);
     const response = await fetch(url, {
@@ -130,7 +139,9 @@ export class XtreamClient {
     if (!response.ok) {
       throw new Error(`Xtream API error: ${response.status} ${response.statusText}`);
     }
-    return response.json() as Promise<T>;
+    const text = await response.text();
+    const sanitized = XtreamClient.stripSurrogates(text);
+    return JSON.parse(sanitized) as T;
   }
 
   async authenticate(): Promise<XtreamAuthResult> {

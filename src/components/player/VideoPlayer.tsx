@@ -103,20 +103,16 @@ export default function VideoPlayer({
 
     const tryDirectPlay = () => {
       setLoadingStatus("Lade Stream...");
-      video.src = src;
+      video.src = proxyUrl(src);
       if (autoPlay) video.play().catch(() => {});
     };
 
     const tryHlsProxy = () => {
       if (!Hls.isSupported()) {
-        // Safari native HLS - try direct first, then proxy
+        // Safari native HLS - always use proxy to avoid mixed content
         setLoadingStatus("Lade Stream (Safari)...");
-        video.src = src;
-        if (autoPlay) video.play().catch(() => {
-          // Try proxy
-          video.src = proxyUrl(src);
-          video.play().catch(() => {});
-        });
+        video.src = proxyUrl(src);
+        if (autoPlay) video.play().catch(() => {});
         return;
       }
 
@@ -476,10 +472,10 @@ export default function VideoPlayer({
     retryCountRef.current = 0;
     const video = videoRef.current;
     if (video) {
-      // Force re-mount by changing src
+      // Force re-mount by changing src - use proxy to avoid mixed content
       video.src = "";
       setTimeout(() => {
-        video.src = src;
+        video.src = proxyUrl(src);
         video.load();
         video.play().catch(() => {});
       }, 100);

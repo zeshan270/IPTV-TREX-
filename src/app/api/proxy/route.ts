@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Allow up to 60s for streaming segments (Vercel Hobby max)
+export const maxDuration = 60;
+
 /**
  * Stream proxy to bypass CORS restrictions for IPTV streams.
  * Fetches content from external IPTV servers and returns it with proper CORS headers.

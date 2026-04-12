@@ -39,8 +39,17 @@ function detectStreamType(url: string): "live" | "movie" | "series" {
   return "live";
 }
 
+/**
+ * Strip lone Unicode surrogates that break JSON serialization.
+ */
+function stripSurrogates(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "\uFFFD")
+             .replace(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "\uFFFD");
+}
+
 export function parseM3U(content: string): ParsedM3UResult {
-  const lines = content.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const lines = stripSurrogates(content).split(/\r?\n/).filter((l) => l.trim() !== "");
 
   if (lines.length === 0) {
     return { channels: [], epgUrl: null };
