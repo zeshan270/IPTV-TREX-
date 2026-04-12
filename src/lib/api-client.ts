@@ -143,7 +143,7 @@ export async function fetchLiveStreams(
     name: String(s.name ?? ""),
     logo: String(s.stream_icon ?? ""),
     group: String(s.category_id ?? ""),
-    url: buildStreamUrl(creds, Number(s.stream_id), "live"),
+    url: buildStreamUrl(creds, Number(s.stream_id), "live", "ts"),
     tvgId: String(s.epg_channel_id ?? ""),
     tvgName: String(s.name ?? ""),
     epgChannelId: String(s.epg_channel_id ?? ""),
@@ -318,7 +318,8 @@ export function buildStreamUrl(
   const u = encodeURIComponent(creds.username);
   const p = encodeURIComponent(creds.password);
   if (type === "live") {
-    return `${base}/live/${u}/${p}/${streamId}.m3u8`;
+    const ext = extension || "ts";
+    return `${base}/live/${u}/${p}/${streamId}.${ext}`;
   }
   if (type === "movie") {
     return `${base}/movie/${u}/${p}/${streamId}.${extension || "mp4"}`;

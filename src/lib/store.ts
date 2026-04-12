@@ -29,6 +29,7 @@ interface AuthState {
   savePlaylist: (playlist: SavedPlaylist) => void;
   removePlaylist: (id: string) => void;
   switchPlaylist: (id: string) => void;
+  updatePlaylist: (id: string, updates: Partial<Pick<SavedPlaylist, "name" | "credentials">>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -63,6 +64,25 @@ export const useAuthStore = create<AuthState>()(
             isLoggedIn: true,
             playlistName: playlist.name,
           });
+        }
+      },
+      updatePlaylist: (id, updates) => {
+        const playlists = get().savedPlaylists.map((p) => {
+          if (p.id !== id) return p;
+          const updated = { ...p, ...updates };
+          return updated;
+        });
+        set({ savedPlaylists: playlists });
+        // If this is the active playlist, also update current credentials/name
+        const active = playlists.find((p) => p.id === id);
+        if (active) {
+          const current = get().credentials;
+          const isActive = current && active.credentials &&
+            JSON.stringify(current) === JSON.stringify(get().savedPlaylists.find((p) => p.id === id)?.credentials);
+          if (isActive || get().playlistName === active.name) {
+            if (updates.credentials) set({ credentials: updates.credentials });
+            if (updates.name) set({ playlistName: updates.name });
+          }
         }
       },
     }),

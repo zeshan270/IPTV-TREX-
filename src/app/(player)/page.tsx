@@ -47,7 +47,7 @@ export default function HomePage() {
       {/* Welcome Banner */}
       <div className="mb-8">
         <h1 className={clsx("font-black text-white mb-1", isLarge ? "text-4xl" : "text-2xl")}>
-          {greeting()} 👋
+          {greeting()}
         </h1>
         {playlistName && (
           <p className={clsx("text-indigo-400 font-medium", isLarge ? "text-xl" : "text-base")}>

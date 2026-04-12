@@ -13,7 +13,7 @@ import PinDialog from "@/components/ui/PinDialog";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { macAddress, logout, credentials, playlistName, savedPlaylists, switchPlaylist, removePlaylist } = useAuthStore();
+  const { macAddress, logout, credentials, playlistName, savedPlaylists, switchPlaylist, removePlaylist, updatePlaylist, setPlaylistName } = useAuthStore();
   const {
     parentalPin, bufferSize, preferredFormat, autoplay,
     fontSize, remoteControlMode, showChannelNumbers,
@@ -27,6 +27,11 @@ export default function SettingsPage() {
   const [pinError, setPinError] = useState("");
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editUser, setEditUser] = useState("");
+  const [editPass, setEditPass] = useState("");
 
   const isLarge = fontSize === "large" || fontSize === "extra-large";
   const textBase = isLarge ? "text-lg" : "text-sm";
@@ -36,6 +41,39 @@ export default function SettingsPage() {
   const handleVerifyPin = (pin: string) => {
     if (pin === parentalPin) { setShowVerifyPin(false); setPinError(""); setShowSetPin(true); }
     else setPinError("Falscher PIN");
+  };
+
+  const startEditPlaylist = (pl: typeof savedPlaylists[0]) => {
+    setEditingPlaylist(pl.id);
+    setEditName(pl.name);
+    if ("serverUrl" in pl.credentials) {
+      setEditUrl(pl.credentials.serverUrl);
+      setEditUser(pl.credentials.username);
+      setEditPass(pl.credentials.password);
+    } else {
+      setEditUrl(pl.credentials.url);
+      setEditUser("");
+      setEditPass("");
+    }
+  };
+
+  const saveEditPlaylist = () => {
+    if (!editingPlaylist || !editName.trim()) return;
+    const pl = savedPlaylists.find((p) => p.id === editingPlaylist);
+    if (!pl) return;
+
+    const newCreds = pl.type === "xtream"
+      ? { serverUrl: editUrl, username: editUser, password: editPass }
+      : { url: editUrl };
+
+    updatePlaylist(editingPlaylist, { name: editName.trim(), credentials: newCreds });
+
+    // If editing the active playlist, update current name too
+    if (credentials && JSON.stringify(credentials) === JSON.stringify(pl.credentials)) {
+      setPlaylistName(editName.trim());
+    }
+
+    setEditingPlaylist(null);
   };
 
   const openPinSetup = () => {
@@ -85,9 +123,36 @@ export default function SettingsPage() {
           <HiListBullet className="h-4 w-4" /> Playlisten
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
-          <div className="p-4">
-            <p className={clsx("text-white font-medium mb-1", textBase)}>Aktive Playlist: <span className="text-indigo-400">{playlistName || "Keine"}</span></p>
-            <p className={clsx("text-gray-500", textSmall)}>Server: {serverUrl}</p>
+          <div className="p-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className={clsx("text-white font-medium mb-1", textBase)}>Aktive Playlist: <span className="text-indigo-400">{playlistName || "Keine"}</span></p>
+              <p className={clsx("text-gray-500 truncate", textSmall)}>Server: {serverUrl}</p>
+            </div>
+            {credentials && (
+              <button
+                onClick={() => {
+                  const activePl = savedPlaylists.find((p) => JSON.stringify(p.credentials) === JSON.stringify(credentials));
+                  if (activePl) {
+                    startEditPlaylist(activePl);
+                  } else {
+                    // Create a temporary editable state for unsaved active playlist
+                    setEditingPlaylist("__active__");
+                    setEditName(playlistName || "My IPTV");
+                    if ("serverUrl" in credentials) {
+                      setEditUrl(credentials.serverUrl);
+                      setEditUser(credentials.username);
+                      setEditPass(credentials.password);
+                    } else if ("url" in credentials) {
+                      setEditUrl(credentials.url);
+                      setEditUser("");
+                      setEditPass("");
+                    }
+                  }
+                }}
+                tabIndex={0}
+                className="px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/30 focus-visible:ring-2 focus-visible:ring-indigo-400 flex-shrink-0"
+              >Bearbeiten</button>
+            )}
           </div>
           {savedPlaylists.length > 1 && (
             <div className="p-4 space-y-2">
@@ -99,6 +164,11 @@ export default function SettingsPage() {
                     <p className={clsx("text-gray-500", textSmall)}>{pl.type.toUpperCase()}</p>
                   </div>
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => startEditPlaylist(pl)}
+                      tabIndex={0}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400"
+                    >Bearbeiten</button>
                     <button
                       onClick={() => switchPlaylist(pl.id)}
                       tabIndex={0}
@@ -251,6 +321,85 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmLogout(false)} className="flex-1 rounded-lg bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45]">Abbrechen</button>
               <button onClick={() => { logout(); router.replace("/login"); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">Abmelden</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Playlist Dialog */}
+      {editingPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl glass-panel p-6">
+            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>Playlist bearbeiten</h3>
+            <div className="space-y-4">
+              <div>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                  placeholder="Playlist-Name"
+                />
+              </div>
+              <div>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Server URL</label>
+                <input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono", textSmall)}
+                  placeholder="http://server.com:port"
+                />
+              </div>
+              {(editUser || editPass || (credentials && "serverUrl" in (credentials || {}))) && (
+                <>
+                  <div>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Benutzername</label>
+                    <input
+                      type="text"
+                      value={editUser}
+                      onChange={(e) => setEditUser(e.target.value)}
+                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      placeholder="Username"
+                    />
+                  </div>
+                  <div>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Passwort</label>
+                    <input
+                      type="text"
+                      value={editPass}
+                      onChange={(e) => setEditPass(e.target.value)}
+                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      placeholder="Password"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditingPlaylist(null)}
+                className="flex-1 rounded-xl bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45] transition-colors"
+              >Abbrechen</button>
+              <button
+                onClick={() => {
+                  if (editingPlaylist === "__active__") {
+                    // Update the active playlist directly
+                    const { login } = useAuthStore.getState();
+                    const isXtream = editUser && editPass;
+                    if (isXtream) {
+                      login({ serverUrl: editUrl, username: editUser, password: editPass }, editName);
+                    } else {
+                      login({ url: editUrl }, editName);
+                    }
+                    setEditingPlaylist(null);
+                  } else {
+                    saveEditPlaylist();
+                  }
+                }}
+                className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-500 transition-colors"
+              >Speichern</button>
             </div>
           </div>
         </div>
