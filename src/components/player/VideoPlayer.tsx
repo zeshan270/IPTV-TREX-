@@ -180,6 +180,10 @@ export default function VideoPlayer({
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsBuffering(false);
         setLoadingStatus("");
+        // Restore volume after HLS re-attaches media
+        const savedVol = loadPref("volume", 1);
+        vid.volume = savedVol;
+        vid.muted = false;
         if (autoPlay) vid.play().catch(() => {});
 
         setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
@@ -316,9 +320,21 @@ export default function VideoPlayer({
     };
   }, []);
 
-  // Fullscreen change
+  // Fullscreen change + orientation lock
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFsChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      // Try to lock to landscape in fullscreen for better viewing
+      try {
+        const ori = screen.orientation as unknown as { lock?: (o: string) => Promise<void>; unlock?: () => void };
+        if (fs && ori.lock) {
+          ori.lock("landscape").catch(() => {});
+        } else if (!fs && ori.unlock) {
+          ori.unlock();
+        }
+      } catch {}
+    };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
@@ -404,20 +420,22 @@ export default function VideoPlayer({
     return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}` : `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Smooth touch gesture handlers
+  // Smooth touch gesture handlers - read from video element directly for sync
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     const container = containerRef.current;
+    const video = videoRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
     const relX = touch.clientX - rect.left;
     touchRef.current = {
       startX: touch.clientX, startY: touch.clientY,
-      startVol: volume, startBright: brightness,
+      startVol: video ? video.volume : 1,
+      startBright: brightness,
       side: relX < rect.width / 2 ? "left" : "right",
       swiping: false, lastUpdate: 0,
     };
-  }, [volume, brightness]);
+  }, [brightness]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -443,7 +461,13 @@ export default function VideoPlayer({
     if (t.side === "right") {
       const newVol = Math.max(0, Math.min(1, t.startVol + sensitivity));
       const video = videoRef.current;
-      if (video) { video.volume = newVol; if (video.muted && newVol > 0) video.muted = false; }
+      if (video) {
+        video.volume = newVol;
+        video.muted = false;
+        setVolume(newVol);
+        setIsMuted(false);
+        savePref("volume", newVol);
+      }
       setSwipeIndicator({ type: "volume", value: newVol });
     } else {
       const newBright = Math.max(0.1, Math.min(1, t.startBright + sensitivity));

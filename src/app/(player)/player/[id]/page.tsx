@@ -99,7 +99,7 @@ export default function PlayerPage() {
     setShowEpg(true);
     const timer = setTimeout(() => setShowEpg(false), 8000);
     return () => clearTimeout(timer);
-  }, [id, currentChannel?.name, nameParam]);
+  }, [streamUrl, currentChannel?.name, nameParam]);
 
   // Number key channel switching
   useEffect(() => {
@@ -183,25 +183,58 @@ export default function PlayerPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  const handleNext = useCallback(() => {
-    next();
+  // Switch channel WITHOUT navigation to preserve fullscreen
+  const switchChannelInPlace = useCallback((direction: "next" | "prev") => {
+    if (direction === "next") next(); else prev();
     const store = usePlayerStore.getState();
-    if (store.currentChannel) {
-      router.replace(
-        `/player/${store.currentChannel.id}?type=live&url=${encodeURIComponent(store.currentChannel.url)}`
+    const ch = store.currentChannel;
+    if (ch) {
+      // Update stream URL directly - no router navigation = no fullscreen loss
+      setStreamUrl(ch.url.trim());
+      // Update URL bar silently without navigation
+      window.history.replaceState(
+        null, "",
+        `/player/${ch.id}?type=live&url=${encodeURIComponent(ch.url)}`
       );
+      // Refresh EPG for new channel
+      if (isXtream && creds) {
+        fetchEpg(creds, Number(ch.id))
+          .then(setEpgPrograms)
+          .catch(() => setEpgPrograms([]));
+      }
+      // Track in recents
+      addRecent({ id: ch.id, name: ch.name, logo: ch.logo, streamType: ch.streamType });
     }
-  }, [next, router]);
+  }, [next, prev, isXtream, creds, addRecent]);
 
-  const handlePrev = useCallback(() => {
-    prev();
-    const store = usePlayerStore.getState();
-    if (store.currentChannel) {
-      router.replace(
-        `/player/${store.currentChannel.id}?type=live&url=${encodeURIComponent(store.currentChannel.url)}`
-      );
-    }
-  }, [prev, router]);
+  const handleNext = useCallback(() => switchChannelInPlace("next"), [switchChannelInPlace]);
+  const handlePrev = useCallback(() => switchChannelInPlace("prev"), [switchChannelInPlace]);
+
+  // Prevent accidental back navigation in landscape / during playback
+  // Push extra history entry so hardware back doesn't immediately leave the player
+  useEffect(() => {
+    // Push a dummy state so first "back" doesn't leave the page
+    window.history.pushState({ iptv: "player" }, "");
+    const handlePopState = (e: PopStateEvent) => {
+      // If we have channel list open, close it instead of navigating away
+      if (showChannelList) {
+        setShowChannelList(false);
+        window.history.pushState({ iptv: "player" }, "");
+        return;
+      }
+      // If fullscreen, exit fullscreen instead of navigating away
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        window.history.pushState({ iptv: "player" }, "");
+        return;
+      }
+      // Otherwise actually go back
+      window.removeEventListener("popstate", handlePopState);
+      router.back();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [router, showChannelList]);
 
   const handleBack = () => {
     router.back();
@@ -224,7 +257,7 @@ export default function PlayerPage() {
   }
 
   return (
-    <div className="relative h-full w-full bg-black">
+    <div className="relative h-full w-full bg-black" style={{ minHeight: "100dvh" }}>
       <VideoPlayer
         src={streamUrl}
         title={displayName}
