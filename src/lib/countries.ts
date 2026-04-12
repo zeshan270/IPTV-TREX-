@@ -39,9 +39,9 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // Turkey
   TR: { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
   TURKEY: { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
-  "T\u00DCRKEI": { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
+  "TÜRKEI": { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
   TURKISH: { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
-  "T\u00DCRKIYE": { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
+  "TÜRKIYE": { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
   TUR: { code: "TR", name: "Turkey", flag: "\u{1F1F9}\u{1F1F7}" },
 
   // France
@@ -64,7 +64,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   SPAIN: { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
   SPANIEN: { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
   SPANISH: { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
-  "ESPA\u00D1A": { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
+  "ESPAÑA": { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
   ESP: { code: "ES", name: "Spain", flag: "\u{1F1EA}\u{1F1F8}" },
 
   // Netherlands
@@ -192,7 +192,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // Denmark
   DK: { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
   DENMARK: { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
-  "D\u00C4NEMARK": { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
+  "DÄNEMARK": { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
   DANISH: { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
   DNK: { code: "DK", name: "Denmark", flag: "\u{1F1E9}\u{1F1F0}" },
 
@@ -206,7 +206,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // Austria
   AT: { code: "AT", name: "Austria", flag: "\u{1F1E6}\u{1F1F9}" },
   AUSTRIA: { code: "AT", name: "Austria", flag: "\u{1F1E6}\u{1F1F9}" },
-  "\u00D6STERREICH": { code: "AT", name: "Austria", flag: "\u{1F1E6}\u{1F1F9}" },
+  "ÖSTERREICH": { code: "AT", name: "Austria", flag: "\u{1F1E6}\u{1F1F9}" },
   AUT: { code: "AT", name: "Austria", flag: "\u{1F1E6}\u{1F1F9}" },
 
   // Switzerland
@@ -233,7 +233,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // Romania
   RO: { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
   ROMANIA: { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
-  "RUM\u00C4NIEN": { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
+  "RUMÄNIEN": { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
   ROMANIAN: { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
   ROU: { code: "RO", name: "Romania", flag: "\u{1F1F7}\u{1F1F4}" },
 
@@ -342,7 +342,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // Egypt
   EG: { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
   EGYPT: { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
-  "\u00C4GYPTEN": { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
+  "ÄGYPTEN": { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
   EGYPTIAN: { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
   EGY: { code: "EG", name: "Egypt", flag: "\u{1F1EA}\u{1F1EC}" },
 
@@ -368,7 +368,7 @@ export const COUNTRY_MAP: Record<string, CountryInfo> = {
   // South Africa
   ZA: { code: "ZA", name: "South Africa", flag: "\u{1F1FF}\u{1F1E6}" },
   "SOUTH AFRICA": { code: "ZA", name: "South Africa", flag: "\u{1F1FF}\u{1F1E6}" },
-  "S\u00DCDAFRIKA": { code: "ZA", name: "South Africa", flag: "\u{1F1FF}\u{1F1E6}" },
+  "SÜDAFRIKA": { code: "ZA", name: "South Africa", flag: "\u{1F1FF}\u{1F1E6}" },
   ZAF: { code: "ZA", name: "South Africa", flag: "\u{1F1FF}\u{1F1E6}" },
 
   // Nigeria

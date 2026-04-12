@@ -15,8 +15,9 @@ import { useAuthStore, usePlayerStore, useFavoritesStore } from "@/lib/store";
 import {
   fetchLiveCategories,
   fetchLiveStreams,
+  buildStreamUrl,
 } from "@/lib/api-client";
-import type { Category, Channel } from "@/types";
+import type { Category, Channel, XtreamCredentials } from "@/types";
 import SearchBar from "@/components/ui/SearchBar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ErrorDisplay from "@/components/ui/ErrorDisplay";
@@ -152,14 +153,14 @@ export default function LiveTVPage() {
   const credentials = useAuthStore((s) => s.credentials);
   const setPlaylist = usePlayerStore((s) => s.setPlaylist);
   const setChannel = usePlayerStore((s) => s.setChannel);
-  const { toggle, isFavorite } = useFavoritesStore();
+  const { toggle, isFavorite, favorites } = useFavoritesStore();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -248,17 +249,38 @@ export default function LiveTVPage() {
   }, []);
 
   const filteredChannels = useMemo(() => {
+    if (showFavoritesOnly) {
+      // Build channel objects directly from favorites store
+      const creds = credentials as XtreamCredentials | null;
+      const favChannels: Channel[] = favorites
+        .filter((f) => f.streamType === "live")
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          logo: f.logo || "",
+          group: f.categoryId || "",
+          url: creds ? buildStreamUrl(creds, Number(f.id), "live", "m3u8") : "",
+          tvgId: "",
+          tvgName: f.name,
+          isLive: true,
+          streamType: "live" as const,
+          categoryId: f.categoryId || "",
+        }));
+      if (searchQuery) {
+        return favChannels.filter((c) =>
+          c.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      return favChannels;
+    }
     let result = channels;
     if (searchQuery) {
       result = result.filter((c) =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    if (showFavoritesOnly) {
-      result = result.filter((c) => isFavorite(c.id));
-    }
     return result;
-  }, [channels, searchQuery, showFavoritesOnly, isFavorite]);
+  }, [channels, searchQuery, showFavoritesOnly, favorites, credentials]);
 
   const handleChannelClick = (channel: Channel) => {
     setChannel(channel);
@@ -406,7 +428,7 @@ export default function LiveTVPage() {
                   )}
                 >
                   <span className="text-xl">{group.flag}</span>
-                  <span className="hidden sm:inline">{group.name}</span>
+                  <span>{group.name}</span>
                   <span className="text-sm opacity-60">({group.categories.length})</span>
                 </button>
               ))}
