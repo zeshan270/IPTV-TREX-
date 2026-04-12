@@ -66,6 +66,7 @@ export default function PlayerPage() {
   const displayName = currentChannel?.name || nameParam || id;
 
   // Track recently watched
+  const recentName = currentChannel?.name || nameParam || id;
   useEffect(() => {
     if (currentChannel) {
       addRecent({
@@ -77,12 +78,11 @@ export default function PlayerPage() {
     } else if (id) {
       addRecent({
         id,
-        name: nameParam || id,
+        name: recentName,
         streamType: type as "live" | "movie" | "series",
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, currentChannel, addRecent, type]);
+  }, [id, currentChannel, addRecent, type, recentName]);
 
   // Fetch EPG for live channels
   useEffect(() => {
