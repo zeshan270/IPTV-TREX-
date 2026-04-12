@@ -15,6 +15,7 @@ import {
   HiArrowPath,
   HiCog6Tooth,
   HiSun,
+  HiClock,
 } from "react-icons/hi2";
 
 // Persist player preferences
@@ -92,6 +93,11 @@ export default function VideoPlayer({
   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
   const [brightness, setBrightness] = useState(() => loadPref("brightness", 1));
   const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness"; value: number } | null>(null);
+
+  // Sleep timer
+  const [sleepTimer, setSleepTimer] = useState<number>(0); // minutes remaining
+  const [showSleepMenu, setShowSleepMenu] = useState(false);
+  const sleepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Touch gesture tracking - use refs for smooth performance (no re-renders during swipe)
   const touchRef = useRef<{
@@ -532,6 +538,30 @@ export default function VideoPlayer({
     if (!wasSwiping) resetHideTimer();
   }, [resetHideTimer]);
 
+  // Sleep timer logic
+  const startSleepTimer = useCallback((minutes: number) => {
+    if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
+    if (minutes <= 0) { setSleepTimer(0); setShowSleepMenu(false); return; }
+    setSleepTimer(minutes);
+    setShowSleepMenu(false);
+    sleepTimerRef.current = setInterval(() => {
+      setSleepTimer((prev) => {
+        if (prev <= 1) {
+          if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
+          // Pause playback when timer expires
+          const v = videoRef.current;
+          if (v) v.pause();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 60000); // every minute
+  }, []);
+
+  useEffect(() => {
+    return () => { if (sleepTimerRef.current) clearInterval(sleepTimerRef.current); };
+  }, []);
+
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const aspectClass = aspectRatio === "fill" ? "object-fill" : aspectRatio === "4:3" ? "object-contain max-w-[75%] mx-auto" : "object-contain";
 
@@ -592,10 +622,40 @@ export default function VideoPlayer({
               Zurück
             </button>
           )}
-          {title && <h2 className="text-sm font-medium text-white truncate max-w-[50%] mx-auto">{title}</h2>}
-          <button onClick={cycleAspectRatio} className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/20 h-10">
-            {aspectRatio}
-          </button>
+          {title && <h2 className="text-sm font-medium text-white truncate max-w-[40%] mx-auto">{title}</h2>}
+          <div className="flex items-center gap-2">
+            {/* Sleep timer */}
+            <div className="relative">
+              <button onClick={(e) => { e.stopPropagation(); setShowSleepMenu(!showSleepMenu); }}
+                className={clsx("flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs hover:bg-white/20 h-10",
+                  sleepTimer > 0 ? "bg-indigo-500/30 text-indigo-300" : "bg-white/10 text-white/80"
+                )}>
+                <HiClock className="h-4 w-4" />
+                {sleepTimer > 0 && <span>{sleepTimer}m</span>}
+              </button>
+              {showSleepMenu && (
+                <div className="absolute top-12 right-0 w-36 rounded-xl glass-panel overflow-hidden shadow-2xl z-40" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider p-2.5 pb-1">Sleep Timer</p>
+                  {[
+                    { label: "Aus", min: 0 },
+                    { label: "15 Min", min: 15 },
+                    { label: "30 Min", min: 30 },
+                    { label: "45 Min", min: 45 },
+                    { label: "1 Std", min: 60 },
+                    { label: "2 Std", min: 120 },
+                  ].map((opt) => (
+                    <button key={opt.min} onClick={() => startSleepTimer(opt.min)}
+                      className={clsx("block w-full text-left text-sm py-2 px-3",
+                        sleepTimer === opt.min ? "text-indigo-400 bg-indigo-500/10" : "text-gray-300 hover:bg-white/5"
+                      )}>{opt.label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={cycleAspectRatio} className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/20 h-10">
+              {aspectRatio}
+            </button>
+          </div>
         </div>
 
         {/* Center controls - minimalistic */}

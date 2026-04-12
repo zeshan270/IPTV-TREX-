@@ -7,13 +7,17 @@ import type { EpgProgram } from "@/types";
 interface EpgOverlayProps {
   programs: EpgProgram[];
   channelName?: string;
+  channelLogo?: string;
   isVisible: boolean;
+  channelNumber?: number;
 }
 
 export default function EpgOverlay({
   programs,
   channelName,
+  channelLogo,
   isVisible,
+  channelNumber,
 }: EpgOverlayProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -24,7 +28,6 @@ export default function EpgOverlay({
   }, []);
 
   if (!isVisible) return null;
-  // Show overlay with just channel name even when no EPG data
   if (programs.length === 0 && !channelName) return null;
 
   const now = Date.now();
@@ -60,55 +63,75 @@ export default function EpgOverlay({
 
   return (
     <div className={clsx(
-      "absolute z-20 pointer-events-none",
+      "absolute z-20 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300",
       isFullscreen
         ? "bottom-28 left-8 right-8"
         : "bottom-20 left-4 right-4"
     )}>
       <div className={clsx(
-        "glass rounded-xl",
-        isFullscreen ? "max-w-2xl p-5" : "max-w-lg p-4"
+        "bg-black/85 backdrop-blur-xl rounded-xl border border-white/10",
+        isFullscreen ? "max-w-2xl p-4" : "max-w-lg p-3"
       )}>
-        {channelName && (
-          <p className={clsx(
-            "text-indigo-400 font-medium mb-2",
-            isFullscreen ? "text-sm" : "text-xs"
-          )}>
-            {channelName}
-          </p>
-        )}
+        {/* Channel info bar - TiviMate style */}
+        <div className="flex items-center gap-3 mb-2">
+          {/* Channel number badge */}
+          {channelNumber && channelNumber > 0 && (
+            <div className="flex h-8 min-w-[2rem] items-center justify-center rounded-md bg-indigo-500/20 px-2">
+              <span className="text-sm font-bold text-indigo-400 tabular-nums">{channelNumber}</span>
+            </div>
+          )}
+
+          {/* Channel logo */}
+          {channelLogo && (
+            <div className="h-8 w-12 flex-shrink-0 rounded overflow-hidden bg-white/5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={channelLogo} alt="" className="h-full w-full object-contain" />
+            </div>
+          )}
+
+          {/* Channel name */}
+          {channelName && (
+            <p className={clsx(
+              "text-white font-semibold truncate flex-1",
+              isFullscreen ? "text-base" : "text-sm"
+            )}>
+              {channelName}
+            </p>
+          )}
+
+          {/* Live badge */}
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-red-400 uppercase">Live</span>
+          </div>
+        </div>
 
         {current && (
-          <div className="mb-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={clsx(
-                "uppercase tracking-wider text-green-400 font-semibold",
-                isFullscreen ? "text-xs" : "text-[10px]"
-              )}>
-                Jetzt
-              </span>
-              <span className={clsx("text-gray-500", isFullscreen ? "text-sm" : "text-xs")}>
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <p className={clsx(
+                "font-medium text-white flex-1 truncate",
+                isFullscreen ? "text-sm" : "text-xs"
+              )}>{current.title}</p>
+              <span className={clsx("text-gray-500 flex-shrink-0 ml-2 tabular-nums", isFullscreen ? "text-xs" : "text-[10px]")}>
                 {formatTime(current.start)} - {formatTime(current.end)}
               </span>
             </div>
-            <p className={clsx(
-              "font-medium text-white",
-              isFullscreen ? "text-base" : "text-sm"
-            )}>{current.title}</p>
             {current.description && (
               <p className={clsx(
-                "text-gray-400 mt-1 line-clamp-2",
-                isFullscreen ? "text-sm" : "text-xs"
+                "text-gray-500 line-clamp-1 mb-1.5",
+                isFullscreen ? "text-xs" : "text-[10px]"
               )}>
                 {current.description}
               </p>
             )}
+            {/* Progress bar */}
             <div className={clsx(
-              "mt-2 rounded-full bg-white/10 overflow-hidden",
-              isFullscreen ? "h-1.5" : "h-1"
+              "rounded-full bg-white/10 overflow-hidden",
+              isFullscreen ? "h-1" : "h-0.5"
             )}>
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
                 style={{ width: `${getProgress()}%` }}
               />
             </div>
@@ -116,31 +139,31 @@ export default function EpgOverlay({
         )}
 
         {next && (
-          <div className="border-t border-white/10 pt-2">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center justify-between pt-1 border-t border-white/5">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <span className={clsx(
-                "uppercase tracking-wider text-gray-500 font-semibold",
+                "text-gray-600 font-medium flex-shrink-0",
                 isFullscreen ? "text-xs" : "text-[10px]"
               )}>
                 Danach
               </span>
-              <span className={clsx("text-gray-500", isFullscreen ? "text-sm" : "text-xs")}>
-                {formatTime(next.start)}
-              </span>
+              <p className={clsx(
+                "text-gray-400 truncate",
+                isFullscreen ? "text-xs" : "text-[10px]"
+              )}>{next.title}</p>
             </div>
-            <p className={clsx(
-              "text-gray-400",
-              isFullscreen ? "text-base" : "text-sm"
-            )}>{next.title}</p>
+            <span className={clsx("text-gray-600 flex-shrink-0 ml-2 tabular-nums", isFullscreen ? "text-xs" : "text-[10px]")}>
+              {formatTime(next.start)}
+            </span>
           </div>
         )}
 
         {programs.length === 0 && (
           <p className={clsx(
-            "text-gray-500 italic",
-            isFullscreen ? "text-sm" : "text-xs"
+            "text-gray-600 italic",
+            isFullscreen ? "text-xs" : "text-[10px]"
           )}>
-            Keine EPG-Daten verfügbar
+            Keine EPG-Daten
           </p>
         )}
       </div>

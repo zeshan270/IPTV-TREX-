@@ -283,7 +283,9 @@ export default function PlayerPage() {
         <EpgOverlay
           programs={epgPrograms}
           channelName={currentChannelName}
+          channelLogo={currentChannel?.logo}
           isVisible={showEpg}
+          channelNumber={playlist.indexOf(currentChannel!) + 1}
         />
       )}
 
