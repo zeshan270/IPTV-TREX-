@@ -180,9 +180,8 @@ export default function VideoPlayer({
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsBuffering(false);
         setLoadingStatus("");
-        // Restore volume after HLS re-attaches media
-        const savedVol = loadPref("volume", 1);
-        vid.volume = savedVol;
+        // Restore user volume after HLS re-attaches media
+        vid.volume = userVolumeRef.current;
         vid.muted = false;
         if (autoPlay) vid.play().catch(() => {});
 
@@ -285,22 +284,55 @@ export default function VideoPlayer({
     };
   }, [onPositionChange]);
 
+  // Ref to track user-intended volume (never overwritten by browser resets)
+  const userVolumeRef = useRef(loadPref("volume", 1));
+
+  // Force-apply saved volume to video element
+  const applyVolume = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const vol = userVolumeRef.current;
+    video.volume = vol;
+    video.muted = false;
+    setVolume(vol);
+    setIsMuted(false);
+  }, []);
+
   // Video event listeners
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPlay = () => { setIsPlaying(true); setIsBuffering(false); setLoadingStatus(""); };
+    const onPlay = () => {
+      setIsPlaying(true); setIsBuffering(false); setLoadingStatus("");
+      // Always restore volume when playback starts (fixes autoplay muting)
+      applyVolume();
+    };
     const onPause = () => setIsPlaying(false);
     const onTimeUpdate = () => setCurrentTime(video.currentTime);
     const onDurationChange = () => setDuration(video.duration);
     const onWaiting = () => { setIsBuffering(true); setLoadingStatus("Buffering..."); };
     const onCanPlay = () => { setIsBuffering(false); setLoadingStatus(""); };
-    const onPlaying = () => { setIsBuffering(false); setLoadingStatus(""); };
+    const onPlaying = () => {
+      setIsBuffering(false); setLoadingStatus("");
+      // Double-check volume on playing event too
+      applyVolume();
+    };
     const onError = () => {};
-    const onVolumeChange = () => { setVolume(video.volume); setIsMuted(video.muted); savePref("volume", video.volume); };
+    const onVolumeChange = () => {
+      // Only save volume if it's a real user change (not a browser reset to 0)
+      const vol = video.volume;
+      const muted = video.muted;
+      setVolume(vol);
+      setIsMuted(muted);
+      // Only persist if volume > 0 or user explicitly set it to 0
+      if (vol > 0) {
+        userVolumeRef.current = vol;
+        savePref("volume", vol);
+      }
+    };
 
     // Restore persisted volume
-    video.volume = loadPref("volume", 1);
+    applyVolume();
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
@@ -318,7 +350,7 @@ export default function VideoPlayer({
       video.removeEventListener("playing", onPlaying); video.removeEventListener("error", onError);
       video.removeEventListener("volumechange", onVolumeChange);
     };
-  }, []);
+  }, [applyVolume]);
 
   // Fullscreen change + orientation lock
   useEffect(() => {
@@ -379,15 +411,28 @@ export default function VideoPlayer({
     document.fullscreenElement ? document.exitFullscreen() : container.requestFullscreen();
   };
 
-  const toggleMute = () => { const v = videoRef.current; if (v) v.muted = !v.muted; };
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    if (!v.muted) {
+      // When unmuting, ensure volume is restored
+      v.volume = userVolumeRef.current;
+    }
+  };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => { const v = videoRef.current; if (v) v.currentTime = Number(e.target.value); };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = videoRef.current;
     if (!v) return;
-    v.volume = Number(e.target.value);
-    if (v.muted && Number(e.target.value) > 0) v.muted = false;
+    const newVol = Number(e.target.value);
+    v.volume = newVol;
+    v.muted = false;
+    userVolumeRef.current = newVol;
+    setVolume(newVol);
+    setIsMuted(false);
+    savePref("volume", newVol);
   };
 
   const cycleAspectRatio = () => {
@@ -464,6 +509,7 @@ export default function VideoPlayer({
       if (video) {
         video.volume = newVol;
         video.muted = false;
+        userVolumeRef.current = newVol;
         setVolume(newVol);
         setIsMuted(false);
         savePref("volume", newVol);
@@ -603,7 +649,7 @@ export default function VideoPlayer({
                 <button onClick={toggleMute} className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
                   {isMuted || volume === 0 ? <HiSpeakerXMark className="h-5 w-5" /> : <HiSpeakerWave className="h-5 w-5" />}
                 </button>
-                <input type="range" min={0} max={1} step={0.05} value={isMuted ? 0 : volume} onChange={handleVolumeChange}
+                <input type="range" min={0} max={1} step={0.05} value={volume} onChange={handleVolumeChange}
                   className="w-0 group-hover/vol:w-20 transition-all duration-200 h-1.5 appearance-none bg-white/20 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white" />
               </div>
             </div>
