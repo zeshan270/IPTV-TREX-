@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.iptvtrex.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.iptvtrex.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        manifestPlaceholders = [
+            hostName    : "iptv-trex.vercel.app",
+            defaultUrl  : "https://iptv-trex.vercel.app",
+            launcherName: "IPTV TREX",
+            assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "web", "site": "https://iptv-trex.vercel.app" } }]'
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../keystore.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "iptvtrex123"
+            keyAlias "iptv-trex"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "iptvtrex123"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
