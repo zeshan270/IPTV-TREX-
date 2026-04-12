@@ -14,9 +14,9 @@ interface CategoryCardProps {
 }
 
 const defaultGradients = [
-  "from-indigo-600 to-purple-600",
-  "from-purple-600 to-pink-600",
-  "from-blue-600 to-indigo-600",
+  "from-amber-600 to-orange-600",
+  "from-orange-600 to-pink-600",
+  "from-blue-600 to-amber-600",
   "from-pink-600 to-rose-600",
   "from-emerald-600 to-teal-600",
   "from-orange-600 to-red-600",
@@ -46,8 +46,8 @@ export default function CategoryCard({
         "bg-gradient-to-br",
         bg,
         isSelected
-          ? "ring-2 ring-white/40 shadow-lg shadow-indigo-500/20 scale-[1.02]"
-          : "hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/10",
+          ? "ring-2 ring-white/40 shadow-lg shadow-amber-500/20 scale-[1.02]"
+          : "hover:scale-[1.02] hover:shadow-lg hover:shadow-amber-500/10",
         className
       )}
     >

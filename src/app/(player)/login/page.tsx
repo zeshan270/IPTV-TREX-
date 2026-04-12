@@ -148,20 +148,20 @@ export default function LoginPage() {
   };
 
   const inputClass =
-    "w-full rounded-xl border border-[#2a2a45] bg-[#0f0f1a] py-3.5 pl-12 pr-4 text-base text-white placeholder-gray-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all";
+    "w-full rounded-xl border border-[#2a2a38] bg-[#0d0d14] py-3.5 pl-12 pr-4 text-base text-white placeholder-gray-600 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f0f1a] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#0d0d14] p-4">
       {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-purple-600/10 blur-3xl" />
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-amber-600/10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-orange-600/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-500/20">
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-4 shadow-lg shadow-amber-500/20">
             <span className="text-3xl font-bold text-white">T</span>
           </div>
           <h1 className="text-3xl font-bold">
@@ -173,18 +173,18 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl bg-[#1a1a2e]/80 backdrop-blur-sm border border-[#2a2a45] shadow-xl overflow-hidden">
+        <div className="rounded-2xl bg-[#181820]/80 backdrop-blur-sm border border-[#2a2a38] shadow-xl overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-[#2a2a45]">
+          <div className="flex border-b border-[#2a2a38]">
             <button
               onClick={() => {
                 setTab("xtream");
                 setError("");
               }}
               className={clsx(
-                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50",
+                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50",
                 tab === "xtream"
-                  ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
+                  ? "text-amber-400 border-b-2 border-amber-500 bg-amber-500/5"
                   : "text-gray-500 hover:text-gray-300"
               )}
             >
@@ -196,9 +196,9 @@ export default function LoginPage() {
                 setError("");
               }}
               className={clsx(
-                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50",
+                "flex-1 py-4 text-base font-medium transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50",
                 tab === "m3u"
-                  ? "text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5"
+                  ? "text-amber-400 border-b-2 border-amber-500 bg-amber-500/5"
                   : "text-gray-500 hover:text-gray-300"
               )}
             >
@@ -288,7 +288,7 @@ export default function LoginPage() {
                 <button
                   onClick={handleXtreamLogin}
                   disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-base font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[56px]"
+                  className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-4 text-base font-semibold text-white transition-all hover:from-amber-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 focus:outline-none focus:ring-2 focus:ring-amber-500/50 min-h-[56px]"
                 >
                   {loading ? (
                     <LoadingSpinner size="sm" className="inline-flex" />
@@ -320,7 +320,7 @@ export default function LoginPage() {
                 <button
                   onClick={handleM3ULogin}
                   disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-base font-semibold text-white transition-all hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[56px]"
+                  className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-4 text-base font-semibold text-white transition-all hover:from-amber-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 focus:outline-none focus:ring-2 focus:ring-amber-500/50 min-h-[56px]"
                 >
                   {loading ? (
                     <LoadingSpinner size="sm" className="inline-flex" />
@@ -333,7 +333,7 @@ export default function LoginPage() {
           </div>
 
           {/* MAC Address */}
-          <div className="border-t border-[#2a2a45] px-6 py-4">
+          <div className="border-t border-[#2a2a38] px-6 py-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Device MAC</span>
               <span className="text-sm text-gray-400 font-mono">
@@ -361,11 +361,11 @@ export default function LoginPage() {
                 return (
                   <div
                     key={pl.id}
-                    className="rounded-xl bg-[#1a1a2e]/80 border border-[#2a2a45] p-4 flex items-center gap-4"
+                    className="rounded-xl bg-[#181820]/80 border border-[#2a2a38] p-4 flex items-center gap-4"
                   >
                     <button
                       onClick={() => handleSwitchPlaylist(pl.id)}
-                      className="flex-1 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-lg p-1 -m-1"
+                      className="flex-1 text-left focus:outline-none focus:ring-2 focus:ring-amber-500/50 rounded-lg p-1 -m-1"
                     >
                       <div className="flex items-center gap-3">
                         <div>
@@ -377,8 +377,8 @@ export default function LoginPage() {
                               className={clsx(
                                 "text-xs px-2 py-0.5 rounded-full font-medium",
                                 pl.type === "xtream"
-                                  ? "bg-indigo-500/20 text-indigo-400"
-                                  : "bg-purple-500/20 text-purple-400"
+                                  ? "bg-amber-500/20 text-amber-400"
+                                  : "bg-orange-500/20 text-orange-400"
                               )}
                             >
                               {pl.type === "xtream" ? "Xtream" : "M3U"}

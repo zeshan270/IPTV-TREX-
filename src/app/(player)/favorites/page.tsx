@@ -136,7 +136,7 @@ export default function FavoritesPage() {
                   isLarge ? "text-lg" : "text-base",
                   activeTab === tab.key
                     ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-black shadow-lg shadow-yellow-500/25"
-                    : "bg-[#1a1a2e] text-gray-300 hover:bg-[#25253d] border border-gray-700"
+                    : "bg-[#181820] text-gray-300 hover:bg-[#22222e] border border-gray-700"
                 )}
               >
                 {tab.icon} {tab.label}
@@ -231,7 +231,7 @@ export default function FavoritesPage() {
                 </button>
 
                 {/* Image */}
-                <div className="aspect-video bg-[#0f0f1a] flex items-center justify-center overflow-hidden">
+                <div className="aspect-video bg-[#0d0d14] flex items-center justify-center overflow-hidden">
                   {fav.logo ? (
                     <img src={fav.logo} alt={fav.name} className="w-full h-full object-contain" />
                   ) : (
@@ -255,7 +255,7 @@ export default function FavoritesPage() {
                       "text-xs px-2 py-0.5 rounded-full font-medium",
                       fav.streamType === "live" ? "bg-green-500/20 text-green-400" :
                       fav.streamType === "movie" ? "bg-blue-500/20 text-blue-400" :
-                      "bg-purple-500/20 text-purple-400"
+                      "bg-orange-500/20 text-orange-400"
                     )}>
                       {fav.streamType === "live" ? "LIVE" : fav.streamType === "movie" ? "FILM" : "SERIE"}
                     </span>

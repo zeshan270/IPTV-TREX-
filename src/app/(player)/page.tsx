@@ -7,7 +7,7 @@ import { useAuthStore, useFavoritesStore, useRecentStore, usePlayerStore, useSet
 
 const quickAccess = [
   { href: "/live", label: "Live TV", icon: HiTv, emoji: "📺", gradient: "from-blue-500 to-cyan-500" },
-  { href: "/movies", label: "Filme", icon: HiFilm, emoji: "🎬", gradient: "from-purple-500 to-pink-500" },
+  { href: "/movies", label: "Filme", icon: HiFilm, emoji: "🎬", gradient: "from-orange-500 to-pink-500" },
   { href: "/series", label: "Serien", icon: HiRectangleStack, emoji: "🎭", gradient: "from-orange-500 to-red-500" },
   { href: "/favorites", label: "⭐ Favoriten", icon: HiStar, emoji: "⭐", gradient: "from-yellow-400 to-amber-500" },
 ];
@@ -50,7 +50,7 @@ export default function HomePage() {
           {greeting()}
         </h1>
         {playlistName && (
-          <p className={clsx("text-indigo-400 font-medium", isLarge ? "text-xl" : "text-base")}>
+          <p className={clsx("text-amber-400 font-medium", isLarge ? "text-xl" : "text-base")}>
             📡 {playlistName}
           </p>
         )}
@@ -105,7 +105,7 @@ export default function HomePage() {
                     isLarge ? "w-52" : "w-40"
                   )}
                 >
-                  <div className="relative aspect-video bg-[#25253d] flex items-center justify-center overflow-hidden">
+                  <div className="relative aspect-video bg-[#22222e] flex items-center justify-center overflow-hidden">
                     {item.logo ? (
                       <img src={item.logo} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
@@ -116,7 +116,7 @@ export default function HomePage() {
                     </div>
                     {/* Progress bar */}
                     <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/50">
-                      <div className="h-full bg-indigo-500 rounded-r-full" style={{ width: `${progress}%` }} />
+                      <div className="h-full bg-amber-500 rounded-r-full" style={{ width: `${progress}%` }} />
                     </div>
                   </div>
                   <div className="p-2">
@@ -148,7 +148,7 @@ export default function HomePage() {
                   isLarge ? "w-36" : "w-28"
                 )}
               >
-                <div className="aspect-square bg-[#25253d] flex items-center justify-center overflow-hidden">
+                <div className="aspect-square bg-[#22222e] flex items-center justify-center overflow-hidden">
                   {item.logo ? (
                     <img src={item.logo} alt={item.name} className="w-full h-full object-contain" />
                   ) : (
@@ -190,7 +190,7 @@ export default function HomePage() {
                   isLarge ? "w-36" : "w-28"
                 )}
               >
-                <div className="aspect-square bg-[#25253d] flex items-center justify-center overflow-hidden">
+                <div className="aspect-square bg-[#22222e] flex items-center justify-center overflow-hidden">
                   {fav.logo ? (
                     <img src={fav.logo} alt={fav.name} className="w-full h-full object-contain" />
                   ) : (

@@ -66,7 +66,7 @@ export default function ContentCard({
       )}
 
       {/* Image */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#25253d]">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#22222e]">
         {image && !imgError ? (
           <Image
             src={image}
@@ -78,7 +78,7 @@ export default function ContentCard({
             unoptimized
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a1a2e] to-[#25253d]">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#181820] to-[#22222e]">
             <span className="text-4xl font-bold text-gray-600">
               {title.charAt(0).toUpperCase()}
             </span>

@@ -36,7 +36,7 @@ export default function Sidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-700/60">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-amber-600 flex items-center justify-center text-white font-bold text-sm">
           IT
         </div>
         <span className="text-lg font-semibold text-white tracking-tight">

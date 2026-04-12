@@ -123,7 +123,7 @@ export default function SearchPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 md:p-6 border-b border-[#2a2a45]">
+      <div className="p-4 md:p-6 border-b border-[#2a2a38]">
         <SearchBar
           placeholder="Search across all content..."
           onSearch={handleSearch}
@@ -140,8 +140,8 @@ export default function SearchPage() {
                 className={clsx(
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
                   tab === t.key
-                    ? "bg-indigo-500 text-white"
-                    : "bg-[#1a1a2e] text-gray-400 hover:bg-[#25253d]"
+                    ? "bg-amber-500 text-white"
+                    : "bg-[#181820] text-gray-400 hover:bg-[#22222e]"
                 )}
               >
                 {t.label} ({t.count})
@@ -159,8 +159,8 @@ export default function SearchPage() {
           </div>
         ) : !hasSearched ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 mb-4">
-              <HiMagnifyingGlass className="h-8 w-8 text-indigo-400" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 mb-4">
+              <HiMagnifyingGlass className="h-8 w-8 text-amber-400" />
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
               Search Content

@@ -76,8 +76,8 @@ export default function EpgOverlay({
         <div className="flex items-center gap-3 mb-2">
           {/* Channel number badge */}
           {channelNumber && channelNumber > 0 && (
-            <div className="flex h-8 min-w-[2rem] items-center justify-center rounded-md bg-indigo-500/20 px-2">
-              <span className="text-sm font-bold text-indigo-400 tabular-nums">{channelNumber}</span>
+            <div className="flex h-8 min-w-[2rem] items-center justify-center rounded-md bg-amber-500/20 px-2">
+              <span className="text-sm font-bold text-amber-400 tabular-nums">{channelNumber}</span>
             </div>
           )}
 
@@ -131,7 +131,7 @@ export default function EpgOverlay({
               isFullscreen ? "h-1" : "h-0.5"
             )}>
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
                 style={{ width: `${getProgress()}%` }}
               />
             </div>

@@ -134,7 +134,7 @@ export default function SeriesPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Top bar */}
-      <div className="p-4 border-b border-[#2a2a45]">
+      <div className="p-4 border-b border-[#2a2a38]">
         <SearchBar
           placeholder="Search series..."
           onSearch={handleSearch}
@@ -146,8 +146,8 @@ export default function SeriesPage() {
             className={clsx(
               "flex-shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-all",
               selectedCategory === null
-                ? "bg-indigo-500 text-white"
-                : "bg-[#1a1a2e] text-gray-400 border border-[#2a2a45] hover:border-indigo-500/30"
+                ? "bg-amber-500 text-white"
+                : "bg-[#181820] text-gray-400 border border-[#2a2a38] hover:border-amber-500/30"
             )}
           >
             All
@@ -159,8 +159,8 @@ export default function SeriesPage() {
               className={clsx(
                 "flex-shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-all whitespace-nowrap",
                 selectedCategory === cat.categoryId
-                  ? "bg-indigo-500 text-white"
-                  : "bg-[#1a1a2e] text-gray-400 border border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white"
+                  : "bg-[#181820] text-gray-400 border border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               {cat.categoryName}
@@ -229,14 +229,14 @@ export default function SeriesPage() {
             </button>
 
             {/* Header */}
-            <div className="relative h-56 overflow-hidden rounded-t-2xl bg-[#25253d]">
+            <div className="relative h-56 overflow-hidden rounded-t-2xl bg-[#22222e]">
               {selectedSeries.cover && (
                 <div
                   className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30"
                   style={{ backgroundImage: `url(${selectedSeries.cover})` }}
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#181820] via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <h2 className="text-xl font-bold text-white mb-2">
                   {selectedSeries.name}
@@ -284,8 +284,8 @@ export default function SeriesPage() {
                           className={clsx(
                             "flex-shrink-0 rounded-lg px-4 py-2 text-xs font-medium transition-all",
                             selectedSeason === season
-                              ? "bg-indigo-500 text-white"
-                              : "bg-[#25253d] text-gray-400 hover:bg-[#2a2a45]"
+                              ? "bg-amber-500 text-white"
+                              : "bg-[#22222e] text-gray-400 hover:bg-[#2a2a38]"
                           )}
                         >
                           Season {season}
@@ -303,8 +303,8 @@ export default function SeriesPage() {
                         }
                         className="flex w-full items-center gap-3 rounded-xl glass-row p-3 text-left"
                       >
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
-                          <HiPlay className="h-5 w-5 text-indigo-400" />
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                          <HiPlay className="h-5 w-5 text-amber-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-white truncate">

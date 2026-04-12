@@ -95,7 +95,7 @@ export default function SettingsPage() {
       className={clsx(
         "relative inline-flex items-center rounded-full transition-colors focus-visible:ring-4 focus-visible:ring-blue-400",
         isLarge ? "h-8 w-14" : "h-6 w-11",
-        on ? "bg-indigo-500" : "bg-[#2a2a45]"
+        on ? "bg-amber-500" : "bg-[#2a2a38]"
       )}
     >
       <span className={clsx(
@@ -166,7 +166,7 @@ export default function SettingsPage() {
                   }
                 }}
                 tabIndex={0}
-                className="px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/30 focus-visible:ring-2 focus-visible:ring-indigo-400 flex-shrink-0"
+                className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400 flex-shrink-0"
               >Bearbeiten</button>
             )}
           </div>
@@ -178,7 +178,7 @@ export default function SettingsPage() {
               {savedPlaylists.map((pl) => {
                 const isActive = credentials && JSON.stringify(credentials) === JSON.stringify(pl.credentials);
                 return (
-                  <div key={pl.id} className={clsx("flex items-center justify-between gap-2 rounded-lg p-3", isActive ? "bg-indigo-500/10 border border-indigo-500/30" : "bg-[#25253d]")}>
+                  <div key={pl.id} className={clsx("flex items-center justify-between gap-2 rounded-lg p-3", isActive ? "bg-amber-500/10 border border-amber-500/30" : "bg-[#22222e]")}>
                     <div className="min-w-0 flex items-center gap-3">
                       {isActive && <span className="h-2.5 w-2.5 rounded-full bg-green-500 flex-shrink-0" />}
                       <div className="min-w-0">
@@ -195,7 +195,7 @@ export default function SettingsPage() {
                       </button>
                       {!isActive && (
                         <button onClick={() => { switchPlaylist(pl.id); window.location.reload(); }} tabIndex={0}
-                          className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 text-sm font-medium hover:bg-indigo-500/30 focus-visible:ring-2 focus-visible:ring-indigo-400">
+                          className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400">
                           Aktivieren
                         </button>
                       )}
@@ -219,7 +219,7 @@ export default function SettingsPage() {
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiLanguage} title="Schriftgröße" desc="Für bessere Lesbarkeit vergrößern">
-            <div className="flex rounded-lg border border-[#2a2a45] overflow-hidden">
+            <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden">
               {(["normal", "large", "extra-large"] as const).map((size) => (
                 <button
                   key={size}
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                   className={clsx(
                     "px-3 py-2 font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-400",
                     isLarge ? "text-base" : "text-xs",
-                    fontSize === size ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white"
+                    fontSize === size ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
                   )}
                 >
                   {size === "normal" ? "Normal" : size === "large" ? "Groß" : "Sehr Groß"}
@@ -255,7 +255,7 @@ export default function SettingsPage() {
         <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiSignal} title="Buffer-Größe" desc="Höhere Werte = weniger Puffer-Unterbrechungen">
             <select value={bufferSize} onChange={(e) => setBufferSize(Number(e.target.value))}
-              className={clsx("rounded-lg border border-[#2a2a45] bg-[#0f0f1a] px-3 py-2 text-white focus-visible:ring-2 focus-visible:ring-blue-400", textBase)}>
+              className={clsx("rounded-lg border border-[#2a2a38] bg-[#0d0d14] px-3 py-2 text-white focus-visible:ring-2 focus-visible:ring-blue-400", textBase)}>
               <option value={1}>1s (Niedrig)</option>
               <option value={3}>3s (Normal)</option>
               <option value={5}>5s (Hoch)</option>
@@ -264,11 +264,11 @@ export default function SettingsPage() {
           </SettingRow>
 
           <SettingRow icon={HiCog6Tooth} title="Format" desc="Stream-Ausgabeformat">
-            <div className="flex rounded-lg border border-[#2a2a45] overflow-hidden">
+            <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden">
               {(["ts", "m3u8"] as const).map((fmt) => (
                 <button key={fmt} onClick={() => setPreferredFormat(fmt)}
                   className={clsx("px-4 py-2 font-medium transition-colors", textBase,
-                    preferredFormat === fmt ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white"
+                    preferredFormat === fmt ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
                   )}>{fmt.toUpperCase()}</button>
               ))}
             </div>
@@ -288,7 +288,7 @@ export default function SettingsPage() {
         <div className="rounded-xl glass-card divide-y divide-white/5">
           <SettingRow icon={HiLockClosed} title="PIN-Sperre" desc={parentalPin ? "PIN ist gesetzt. Tippen zum Ändern." : "4-stellige PIN zum Sperren festlegen"}>
             <button onClick={openPinSetup} tabIndex={0}
-              className={clsx("flex items-center gap-2 rounded-lg bg-indigo-500/10 px-4 py-2 font-medium text-indigo-400 hover:bg-indigo-500/20 focus-visible:ring-2 focus-visible:ring-blue-400", textSmall)}>
+              className={clsx("flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 font-medium text-amber-400 hover:bg-amber-500/20 focus-visible:ring-2 focus-visible:ring-blue-400", textSmall)}>
               <HiLockClosed className="h-4 w-4" />
               {parentalPin ? "Ändern" : "Festlegen"}
             </button>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
             <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Abmelden?</h3>
             <p className={clsx("text-gray-400 mb-6", textBase)}>Du musst dich erneut anmelden.</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmLogout(false)} className="flex-1 rounded-lg bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45]">Abbrechen</button>
+              <button onClick={() => setShowConfirmLogout(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">Abbrechen</button>
               <button onClick={() => { logout(); router.replace("/login"); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">Abmelden</button>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                  className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                   placeholder="Playlist-Name"
                 />
               </div>
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                   type="url"
                   value={editUrl}
                   onChange={(e) => setEditUrl(e.target.value)}
-                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono", textSmall)}
+                  className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono", textSmall)}
                   placeholder="http://server.com:port"
                 />
               </div>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                       type="text"
                       value={editUser}
                       onChange={(e) => setEditUser(e.target.value)}
-                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Username"
                     />
                   </div>
@@ -395,7 +395,7 @@ export default function SettingsPage() {
                       type="text"
                       value={editPass}
                       onChange={(e) => setEditPass(e.target.value)}
-                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Password"
                     />
                   </div>
@@ -405,7 +405,7 @@ export default function SettingsPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setEditingPlaylist(null)}
-                className="flex-1 rounded-xl bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45] transition-colors"
+                className="flex-1 rounded-xl bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38] transition-colors"
               >Abbrechen</button>
               <button
                 onClick={() => {
@@ -422,7 +422,7 @@ export default function SettingsPage() {
                     saveEditPlaylist();
                   }
                 }}
-                className="flex-1 rounded-xl bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-500 transition-colors"
+                className="flex-1 rounded-xl bg-amber-600 py-3 font-medium text-white hover:bg-amber-500 transition-colors"
               >Speichern</button>
             </div>
           </div>
@@ -436,15 +436,15 @@ export default function SettingsPage() {
             <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>Neue Playlist hinzufügen</h3>
 
             {/* Type selector */}
-            <div className="flex rounded-lg border border-[#2a2a45] overflow-hidden mb-4">
+            <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden mb-4">
               <button onClick={() => setAddType("xtream")}
                 className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
-                  addType === "xtream" ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white")}>
+                  addType === "xtream" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white")}>
                 Xtream Codes
               </button>
               <button onClick={() => setAddType("m3u")}
                 className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
-                  addType === "m3u" ? "bg-indigo-500 text-white" : "text-gray-400 hover:text-white")}>
+                  addType === "m3u" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white")}>
                 M3U URL
               </button>
             </div>
@@ -453,7 +453,7 @@ export default function SettingsPage() {
               <div>
                 <label className={clsx("block text-gray-400 mb-1", textSmall)}>Name</label>
                 <input type="text" value={addName} onChange={(e) => setAddName(e.target.value)}
-                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                  className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                   placeholder="z.B. Mein IPTV" />
               </div>
               <div>
@@ -461,7 +461,7 @@ export default function SettingsPage() {
                   {addType === "xtream" ? "Server URL" : "M3U URL"}
                 </label>
                 <input type="url" value={addUrl} onChange={(e) => setAddUrl(e.target.value)}
-                  className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono", textSmall)}
+                  className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono", textSmall)}
                   placeholder={addType === "xtream" ? "http://server.com:port" : "http://example.com/playlist.m3u"} />
               </div>
               {addType === "xtream" && (
@@ -469,13 +469,13 @@ export default function SettingsPage() {
                   <div>
                     <label className={clsx("block text-gray-400 mb-1", textSmall)}>Benutzername</label>
                     <input type="text" value={addUser} onChange={(e) => setAddUser(e.target.value)}
-                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Username" />
                   </div>
                   <div>
                     <label className={clsx("block text-gray-400 mb-1", textSmall)}>Passwort</label>
                     <input type="text" value={addPass} onChange={(e) => setAddPass(e.target.value)}
-                      className={clsx("w-full rounded-lg bg-[#0f0f1a] border border-[#2a2a45] px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none", textBase)}
+                      className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Password" />
                   </div>
                 </>
@@ -483,7 +483,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddPlaylist(false)}
-                className="flex-1 rounded-xl bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45] transition-colors">
+                className="flex-1 rounded-xl bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38] transition-colors">
                 Abbrechen
               </button>
               <button
@@ -519,7 +519,7 @@ export default function SettingsPage() {
             <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Verlauf löschen?</h3>
             <p className={clsx("text-gray-400 mb-6", textBase)}>Alle Einträge werden unwiderruflich gelöscht.</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmClear(false)} className="flex-1 rounded-lg bg-[#25253d] py-3 font-medium text-gray-300 hover:bg-[#2a2a45]">Abbrechen</button>
+              <button onClick={() => setShowConfirmClear(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">Abbrechen</button>
               <button onClick={() => { clearRecent(); setShowConfirmClear(false); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">Löschen</button>
             </div>
           </div>

@@ -57,7 +57,7 @@ export default function PinDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative w-full max-w-sm rounded-2xl bg-[#1a1a2e] border border-[#2a2a45] p-8 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-2xl bg-[#181820] border border-[#2a2a38] p-8 shadow-2xl">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -67,8 +67,8 @@ export default function PinDialog({
         </button>
 
         {/* Icon */}
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/10">
-          <HiLockClosed className="h-7 w-7 text-indigo-400" />
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
+          <HiLockClosed className="h-7 w-7 text-amber-400" />
         </div>
 
         {/* Title */}
@@ -91,10 +91,10 @@ export default function PinDialog({
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
               className={clsx(
-                "h-14 w-14 rounded-xl border-2 bg-[#0f0f1a] text-center text-2xl font-bold text-white outline-none transition-all",
+                "h-14 w-14 rounded-xl border-2 bg-[#0d0d14] text-center text-2xl font-bold text-white outline-none transition-all",
                 error
                   ? "border-red-500 shake"
-                  : "border-[#2a2a45] focus:border-indigo-500"
+                  : "border-[#2a2a38] focus:border-amber-500"
               )}
             />
           ))}

@@ -41,9 +41,9 @@ export default function ChannelSwitcher({
   if (!isOpen) return null;
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 z-30 w-80 flex flex-col bg-[#0f0f1a]/95 backdrop-blur-md border-l border-[#2a2a45]">
+    <div className="absolute right-0 top-0 bottom-0 z-30 w-80 flex flex-col bg-[#0d0d14]/95 backdrop-blur-md border-l border-[#2a2a38]">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-[#2a2a45]">
+      <div className="flex items-center justify-between p-3 border-b border-[#2a2a38]">
         <h3 className="text-sm font-semibold text-white">Channels</h3>
         <button
           onClick={onClose}
@@ -54,7 +54,7 @@ export default function ChannelSwitcher({
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-[#2a2a45]">
+      <div className="p-3 border-b border-[#2a2a38]">
         <div className="relative">
           <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
@@ -62,7 +62,7 @@ export default function ChannelSwitcher({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter channels..."
-            className="w-full rounded-lg bg-[#1a1a2e] border border-[#2a2a45] py-2 pl-9 pr-3 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500"
+            className="w-full rounded-lg bg-[#181820] border border-[#2a2a38] py-2 pl-9 pr-3 text-sm text-white placeholder-gray-500 outline-none focus:border-amber-500"
           />
         </div>
       </div>
@@ -79,14 +79,14 @@ export default function ChannelSwitcher({
               className={clsx(
                 "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
                 isActive
-                  ? "bg-indigo-500/10 border-l-2 border-indigo-500"
+                  ? "bg-amber-500/10 border-l-2 border-amber-500"
                   : "hover:bg-white/5 border-l-2 border-transparent"
               )}
             >
               <span className="text-xs text-gray-500 w-6 text-right font-mono">
                 {idx + 1}
               </span>
-              <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded bg-[#25253d]">
+              <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded bg-[#22222e]">
                 {channel.logo ? (
                   <Image
                     src={channel.logo}
@@ -105,7 +105,7 @@ export default function ChannelSwitcher({
                 <p
                   className={clsx(
                     "text-sm truncate",
-                    isActive ? "text-indigo-400 font-medium" : "text-gray-300"
+                    isActive ? "text-amber-400 font-medium" : "text-gray-300"
                   )}
                 >
                   {channel.name}

@@ -393,7 +393,7 @@ export default function LiveTVPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Top bar */}
-      <div className="p-4 border-b border-[#2a2a45] space-y-3">
+      <div className="p-4 border-b border-[#2a2a38] space-y-3">
         <div className="flex items-center gap-2">
           <SearchBar
             placeholder="Kanäle suchen..."
@@ -431,10 +431,10 @@ export default function LiveTVPage() {
               tabIndex={0}
               className={clsx(
                 "flex-shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all min-h-[44px]",
-                "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                 showAllChannels && !showFavoritesOnly
-                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                  : "bg-[#1a1a2e] text-gray-300 border border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
+                  : "bg-[#181820] text-gray-300 border border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               <HiViewColumns className="h-4 w-4" />
@@ -447,10 +447,10 @@ export default function LiveTVPage() {
               tabIndex={0}
               className={clsx(
                 "flex-shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all min-h-[44px]",
-                "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                 selectedCountry === null && !showFavoritesOnly && !showAllChannels
-                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                  : "bg-[#1a1a2e] text-gray-300 border border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
+                  : "bg-[#181820] text-gray-300 border border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               <HiGlobeAlt className="h-4 w-4" />
@@ -464,10 +464,10 @@ export default function LiveTVPage() {
                 tabIndex={0}
                 className={clsx(
                   "flex-shrink-0 flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all whitespace-nowrap min-h-[44px]",
-                  "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                  "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                   selectedCountry === group.code
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                    : "bg-[#1a1a2e] text-gray-300 border border-[#2a2a45] hover:border-indigo-500/30"
+                    ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
+                    : "bg-[#181820] text-gray-300 border border-[#2a2a38] hover:border-amber-500/30"
                 )}
               >
                 <span className="text-lg">{group.flag}</span>
@@ -485,10 +485,10 @@ export default function LiveTVPage() {
                 tabIndex={0}
                 className={clsx(
                   "flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all min-h-[38px]",
-                  "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                  "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                   selectedCategory === null
-                    ? "bg-indigo-500 text-white"
-                    : "bg-[#1a1a2e] text-gray-400 border border-[#2a2a45] hover:border-indigo-500/30"
+                    ? "bg-amber-500 text-white"
+                    : "bg-[#181820] text-gray-400 border border-[#2a2a38] hover:border-amber-500/30"
                 )}
               >
                 Alle {countryGroups.find((g) => g.code === selectedCountry)?.name}
@@ -500,10 +500,10 @@ export default function LiveTVPage() {
                   tabIndex={0}
                   className={clsx(
                     "flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap min-h-[38px]",
-                    "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                    "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                     selectedCategory === cat.categoryId
-                      ? "bg-indigo-500 text-white"
-                      : "bg-[#1a1a2e] text-gray-400 border border-[#2a2a45] hover:border-indigo-500/30"
+                      ? "bg-amber-500 text-white"
+                      : "bg-[#181820] text-gray-400 border border-[#2a2a38] hover:border-amber-500/30"
                   )}
                 >
                   {cat.subCategory}
@@ -567,7 +567,7 @@ export default function LiveTVPage() {
                     }}
                     className={clsx(
                       "group relative rounded-xl glass-card p-3 text-left cursor-pointer",
-                      "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
+                      "focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:outline-none",
                       "min-h-[100px]"
                     )}
                   >
@@ -601,7 +601,7 @@ export default function LiveTVPage() {
                       </div>
                     )}
 
-                    <div className="relative aspect-video w-full mb-2 rounded-lg overflow-hidden bg-[#25253d]">
+                    <div className="relative aspect-video w-full mb-2 rounded-lg overflow-hidden bg-[#22222e]">
                       {channel.logo ? (
                         <Image
                           src={channel.logo}

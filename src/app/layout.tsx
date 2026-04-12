@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#0f0f1a] text-[#e2e8f0]">
+      <body className="min-h-full flex flex-col bg-[#0d0d14] text-[#e2e8f0]">
         {children}
         <SWRegister />
       </body>

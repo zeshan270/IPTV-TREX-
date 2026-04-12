@@ -28,12 +28,12 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f0f1a]">
+    <div className="flex h-screen overflow-hidden bg-[#0d0d14]">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col border-r border-[#2a2a45] bg-[#0f0f1a]">
+      <aside className="flex w-64 flex-col border-r border-[#2a2a38] bg-[#0d0d14]">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-[#2a2a45] px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+        <div className="flex h-16 items-center gap-3 border-b border-[#2a2a38] px-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
             <span className="text-sm font-bold text-white">T</span>
           </div>
           <div>
@@ -56,7 +56,7 @@ export default function AdminLayout({
                     className={clsx(
                       "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                       isActive
-                        ? "bg-indigo-500/10 text-indigo-400"
+                        ? "bg-amber-500/10 text-amber-400"
                         : "text-gray-400 hover:bg-white/5 hover:text-white"
                     )}
                   >
@@ -70,7 +70,7 @@ export default function AdminLayout({
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-[#2a2a45] p-3">
+        <div className="border-t border-[#2a2a38] p-3">
           <Link
             href="/login"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-all"

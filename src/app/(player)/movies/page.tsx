@@ -220,7 +220,7 @@ export default function MoviesPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Top bar */}
-      <div className="p-4 border-b border-[#2a2a45] space-y-3">
+      <div className="p-4 border-b border-[#2a2a38] space-y-3">
         <SearchBar
           placeholder="Search movies..."
           onSearch={handleSearch}
@@ -236,8 +236,8 @@ export default function MoviesPage() {
               "flex-shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-base font-semibold transition-all min-h-[48px]",
               "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
               selectedCountry === null
-                ? "bg-indigo-500 text-white shadow-lg"
-                : "bg-[#1a1a2e] text-gray-300 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                ? "bg-amber-500 text-white shadow-lg"
+                : "bg-[#181820] text-gray-300 border-2 border-[#2a2a38] hover:border-amber-500/30"
             )}
           >
             <HiGlobeAlt className="h-5 w-5" />
@@ -252,8 +252,8 @@ export default function MoviesPage() {
                 "flex-shrink-0 flex items-center gap-2 rounded-xl px-4 py-2.5 text-base font-medium transition-all whitespace-nowrap min-h-[48px]",
                 "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                 selectedCountry === group.code
-                  ? "bg-indigo-500 text-white shadow-lg"
-                  : "bg-[#1a1a2e] text-gray-300 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white shadow-lg"
+                  : "bg-[#181820] text-gray-300 border-2 border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               <span className="text-lg">{group.flag}</span>
@@ -272,8 +272,8 @@ export default function MoviesPage() {
                 "flex-shrink-0 rounded-full px-5 py-2.5 text-base font-medium transition-all min-h-[44px]",
                 "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                 selectedCategory === null
-                  ? "bg-indigo-500 text-white"
-                  : "bg-[#1a1a2e] text-gray-400 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white"
+                  : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               All
@@ -287,8 +287,8 @@ export default function MoviesPage() {
                   "flex-shrink-0 rounded-full px-5 py-2.5 text-base font-medium transition-all whitespace-nowrap min-h-[44px]",
                   "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                   selectedCategory === cat.categoryId
-                    ? "bg-indigo-500 text-white"
-                    : "bg-[#1a1a2e] text-gray-400 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                    ? "bg-amber-500 text-white"
+                    : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
                 )}
               >
                 {cat.subCategory}
@@ -307,8 +307,8 @@ export default function MoviesPage() {
                 "flex-shrink-0 rounded-full px-5 py-2.5 text-base font-medium transition-all min-h-[44px]",
                 "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                 selectedCategory === null
-                  ? "bg-indigo-500 text-white"
-                  : "bg-[#1a1a2e] text-gray-400 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                  ? "bg-amber-500 text-white"
+                  : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
               All
@@ -322,8 +322,8 @@ export default function MoviesPage() {
                   "flex-shrink-0 rounded-full px-5 py-2.5 text-base font-medium transition-all whitespace-nowrap min-h-[44px]",
                   "focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none",
                   selectedCategory === cat.categoryId
-                    ? "bg-indigo-500 text-white"
-                    : "bg-[#1a1a2e] text-gray-400 border-2 border-[#2a2a45] hover:border-indigo-500/30"
+                    ? "bg-amber-500 text-white"
+                    : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
                 )}
               >
                 {cat.categoryName}
@@ -399,7 +399,7 @@ export default function MoviesPage() {
             </button>
 
             {/* Header with poster */}
-            <div className="relative h-72 overflow-hidden rounded-t-2xl bg-[#25253d]">
+            <div className="relative h-72 overflow-hidden rounded-t-2xl bg-[#22222e]">
               {selectedMovie.streamIcon && (
                 <div
                   className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30"
@@ -408,7 +408,7 @@ export default function MoviesPage() {
                   }}
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a2e] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#181820] via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <h2 className="text-2xl font-bold text-white mb-2">
                   {selectedMovie.name}
@@ -440,7 +440,7 @@ export default function MoviesPage() {
               <button
                 onClick={() => handlePlay(selectedMovie)}
                 tabIndex={0}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-lg font-semibold text-white hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 mb-5 focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none min-h-[56px]"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-4 text-lg font-semibold text-white hover:from-amber-500 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/20 mb-5 focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none min-h-[56px]"
               >
                 <HiPlay className="h-6 w-6" />
                 Play Movie
@@ -463,7 +463,7 @@ export default function MoviesPage() {
                   "focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:outline-none",
                   isFavorite(String(selectedMovie.streamId))
                     ? "bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/40"
-                    : "bg-[#25253d] text-gray-400 border-2 border-[#2a2a45] hover:border-yellow-500/30"
+                    : "bg-[#22222e] text-gray-400 border-2 border-[#2a2a38] hover:border-yellow-500/30"
                 )}
               >
                 <HiStar className="h-5 w-5" />

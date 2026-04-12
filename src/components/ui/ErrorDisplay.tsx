@@ -17,7 +17,7 @@ export default function ErrorDisplay({
   return (
     <div
       className={clsx(
-        "flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1a1a2e]/80 border border-red-500/20 p-8",
+        "flex flex-col items-center justify-center gap-4 rounded-xl bg-[#181820]/80 border border-red-500/20 p-8",
         className
       )}
     >
@@ -28,7 +28,7 @@ export default function ErrorDisplay({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0f0f1a]"
+          className="rounded-lg bg-amber-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#0d0d14]"
         >
           Try Again
         </button>

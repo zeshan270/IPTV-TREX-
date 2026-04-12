@@ -641,7 +641,7 @@ export default function VideoPlayer({
         )}>
           {swipeIndicator.type === "volume" ? <HiSpeakerWave className="h-5 w-5 text-white" /> : <HiSun className="h-5 w-5 text-yellow-400" />}
           <div className="w-1 h-24 bg-white/20 rounded-full relative overflow-hidden">
-            <div className={clsx("absolute bottom-0 w-full rounded-full", swipeIndicator.type === "volume" ? "bg-indigo-500" : "bg-yellow-400")}
+            <div className={clsx("absolute bottom-0 w-full rounded-full", swipeIndicator.type === "volume" ? "bg-amber-500" : "bg-yellow-400")}
               style={{ height: `${swipeIndicator.value * 100}%` }} />
           </div>
           <span className="text-[10px] text-white font-medium">{Math.round(swipeIndicator.value * 100)}%</span>
@@ -651,7 +651,7 @@ export default function VideoPlayer({
       {/* Buffering */}
       {isBuffering && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 pointer-events-none gap-3">
-          <div className="w-10 h-10 border-3 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-3 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
           {loadingStatus && <p className="text-xs text-white/70 font-medium">{loadingStatus}</p>}
         </div>
       )}
@@ -661,7 +661,7 @@ export default function VideoPlayer({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-4">
           <p className="text-red-400 text-sm text-center px-8">{error}</p>
           <button onClick={(e) => { e.stopPropagation(); retry(); }}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm text-white hover:bg-indigo-500">
+            className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm text-white hover:bg-amber-500">
             <HiArrowPath className="h-4 w-4" /> Erneut versuchen
           </button>
         </div>
@@ -684,7 +684,7 @@ export default function VideoPlayer({
             <div className="relative">
               <button onClick={(e) => { e.stopPropagation(); setShowSleepMenu(!showSleepMenu); }}
                 className={clsx("flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs hover:bg-white/20 h-10",
-                  sleepTimer > 0 ? "bg-indigo-500/30 text-indigo-300" : "bg-white/10 text-white/80"
+                  sleepTimer > 0 ? "bg-amber-500/30 text-amber-300" : "bg-white/10 text-white/80"
                 )}>
                 <HiClock className="h-4 w-4" />
                 {sleepTimer > 0 && <span>{sleepTimer}m</span>}
@@ -702,7 +702,7 @@ export default function VideoPlayer({
                   ].map((opt) => (
                     <button key={opt.min} onClick={() => startSleepTimer(opt.min)}
                       className={clsx("block w-full text-left text-sm py-2 px-3",
-                        sleepTimer === opt.min ? "text-indigo-400 bg-indigo-500/10" : "text-gray-300 hover:bg-white/5"
+                        sleepTimer === opt.min ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
                       )}>{opt.label}</button>
                   ))}
                 </div>
@@ -739,11 +739,11 @@ export default function VideoPlayer({
               <div className="relative flex-1 h-[14px] flex items-center group/seek">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full h-[4px] rounded-full bg-white/20 group-hover/seek:h-[8px] transition-all">
-                    <div className="h-full rounded-full bg-indigo-500" style={{ width: `${progressPercent}%` }} />
+                    <div className="h-full rounded-full bg-amber-500" style={{ width: `${progressPercent}%` }} />
                   </div>
                 </div>
                 <input type="range" min={0} max={duration || 0} value={currentTime} onChange={handleSeek}
-                  className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[14px] [&::-webkit-slider-thumb]:w-[14px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white" />
+                  className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[14px] [&::-webkit-slider-thumb]:w-[14px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white" />
               </div>
               <span className="text-xs font-semibold text-white/90 w-12 tabular-nums">{formatTime(duration)}</span>
             </div>
@@ -785,7 +785,7 @@ export default function VideoPlayer({
                           {audioTracks.map((t) => (
                             <button key={t.id} onClick={() => handleAudioTrack(t.id)}
                               className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
-                                selectedAudio === t.id ? "text-indigo-400 bg-indigo-500/10" : "text-gray-300 hover:bg-white/5"
+                                selectedAudio === t.id ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
                               )}>{t.name} {t.lang && `(${t.lang})`}</button>
                           ))}
                         </div>
@@ -795,12 +795,12 @@ export default function VideoPlayer({
                           <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Untertitel</p>
                           <button onClick={() => handleSubtitleTrack(-1)}
                             className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
-                              selectedSubtitle === -1 ? "text-indigo-400 bg-indigo-500/10" : "text-gray-300 hover:bg-white/5"
+                              selectedSubtitle === -1 ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
                             )}>Aus</button>
                           {subtitleTracks.map((t) => (
                             <button key={t.id} onClick={() => handleSubtitleTrack(t.id)}
                               className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
-                                selectedSubtitle === t.id ? "text-indigo-400 bg-indigo-500/10" : "text-gray-300 hover:bg-white/5"
+                                selectedSubtitle === t.id ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
                               )}>{t.name} {t.lang && `(${t.lang})`}</button>
                           ))}
                         </div>

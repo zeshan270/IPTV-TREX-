@@ -244,7 +244,7 @@ export default function AdminSettingsPage() {
       {isSuperAdmin && (
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
               <HiOutlineUserAdd className="w-5 h-5" />
             </div>
             <div>
@@ -297,7 +297,7 @@ export default function AdminSettingsPage() {
               <button
                 type="submit"
                 disabled={newAdminLoading}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
               >
                 {newAdminLoading ? "Creating..." : "Create Admin"}
               </button>

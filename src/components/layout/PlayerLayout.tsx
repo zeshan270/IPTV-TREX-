@@ -98,27 +98,27 @@ export default function PlayerLayout({
                 isLarge ? "py-4 text-lg" : "py-3 text-base",
                 "font-medium",
                 isActive
-                  ? "bg-indigo-500/10 text-indigo-400 shadow-sm active"
+                  ? "bg-amber-500/10 text-amber-400 shadow-sm active"
                   : "text-gray-400 hover:bg-white/5 hover:text-white"
               )
         )}
       >
-        <item.icon className={clsx("flex-shrink-0", item.isFavorite ? "h-6 w-6" : "h-5 w-5", item.isFavorite ? (isActive ? "text-yellow-400" : "text-yellow-400/80") : isActive ? "text-indigo-400" : "")} />
+        <item.icon className={clsx("flex-shrink-0", item.isFavorite ? "h-6 w-6" : "h-5 w-5", item.isFavorite ? (isActive ? "text-yellow-400" : "text-yellow-400/80") : isActive ? "text-amber-400" : "")} />
         <span>{item.label}</span>
-        {isActive && !item.isFavorite && <div className="ml-auto h-2 w-2 rounded-full bg-indigo-400" />}
+        {isActive && !item.isFavorite && <div className="ml-auto h-2 w-2 rounded-full bg-amber-400" />}
         {item.isFavorite && isActive && <div className="ml-auto h-2 w-2 rounded-full bg-yellow-400" />}
       </Link>
     );
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0f0f1a]">
+    <div className="flex h-screen overflow-hidden bg-[#0d0d14]">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-20 lg:w-72 flex-col border-r border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
+      <aside className="hidden lg:flex w-20 lg:w-72 flex-col border-r border-[#2a2a38] bg-[#0d0d14]/95 backdrop-blur-sm">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-center lg:justify-start lg:px-6 border-b border-[#2a2a45]">
+        <div className="flex h-16 items-center justify-center lg:justify-start lg:px-6 border-b border-[#2a2a38]">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
               <span className="text-sm font-bold text-white">T</span>
             </div>
             <span className="hidden xl:block text-lg font-bold gradient-text">IPTV TREX</span>
@@ -137,14 +137,14 @@ export default function PlayerLayout({
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-[#2a2a45] p-3 lg:p-4 space-y-2">
+        <div className="border-t border-[#2a2a38] p-3 lg:p-4 space-y-2">
           {(playlistName || serverHost) && (
-            <div className="rounded-lg bg-indigo-500/10 p-2 lg:p-3">
-              <p className="hidden xl:block text-[10px] uppercase tracking-wider text-indigo-400 mb-1">Aktive Playlist</p>
-              <p className="text-xs text-indigo-300 font-medium text-center lg:text-left truncate">{playlistName || serverHost}</p>
+            <div className="rounded-lg bg-amber-500/10 p-2 lg:p-3">
+              <p className="hidden xl:block text-[10px] uppercase tracking-wider text-amber-400 mb-1">Aktive Playlist</p>
+              <p className="text-xs text-amber-300 font-medium text-center lg:text-left truncate">{playlistName || serverHost}</p>
             </div>
           )}
-          <div className="rounded-lg bg-[#1a1a2e] p-2 lg:p-3">
+          <div className="rounded-lg bg-[#181820] p-2 lg:p-3">
             <p className="hidden xl:block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Geräte-MAC</p>
             <p className="text-[10px] lg:text-xs text-gray-400 font-mono text-center lg:text-left truncate">{macAddress || "00:00:00:00:00:00"}</p>
           </div>
@@ -158,11 +158,11 @@ export default function PlayerLayout({
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
 
           {/* Slide-in panel */}
-          <div className="absolute left-0 top-0 bottom-0 w-72 glass-panel menu-slide-in border-r border-[#2a2a45] flex flex-col" style={{ borderRadius: 0 }}>
+          <div className="absolute left-0 top-0 bottom-0 w-72 glass-panel menu-slide-in border-r border-[#2a2a38] flex flex-col" style={{ borderRadius: 0 }}>
             {/* Menu header */}
-            <div className="flex items-center justify-between p-4 border-b border-[#2a2a45]">
+            <div className="flex items-center justify-between p-4 border-b border-[#2a2a38]">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
                   <span className="text-sm font-bold text-white">T</span>
                 </div>
                 <span className="text-lg font-bold gradient-text">IPTV TREX</span>
@@ -187,11 +187,11 @@ export default function PlayerLayout({
             </nav>
 
             {/* Menu footer */}
-            <div className="border-t border-[#2a2a45] p-4 space-y-2">
+            <div className="border-t border-[#2a2a38] p-4 space-y-2">
               {(playlistName || serverHost) && (
                 <div className="glass-card rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-indigo-400 mb-1">Aktive Playlist</p>
-                  <p className="text-xs text-indigo-300 font-medium truncate">{playlistName || serverHost}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-amber-400 mb-1">Aktive Playlist</p>
+                  <p className="text-xs text-amber-300 font-medium truncate">{playlistName || serverHost}</p>
                 </div>
               )}
               <div className="glass-card rounded-lg p-3">
@@ -204,7 +204,7 @@ export default function PlayerLayout({
       )}
 
       {/* Mobile top bar with hamburger */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 border-b border-[#2a2a45] bg-[#0f0f1a]/95 backdrop-blur-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 border-b border-[#2a2a38] bg-[#0d0d14]/95 backdrop-blur-sm">
         <button
           onClick={() => setMenuOpen(true)}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors focus-visible:ring-4 focus-visible:ring-blue-400"
@@ -214,7 +214,7 @@ export default function PlayerLayout({
         </button>
 
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
             <span className="text-xs font-bold text-white">T</span>
           </div>
           <span className="text-base font-bold gradient-text">IPTV TREX</span>
