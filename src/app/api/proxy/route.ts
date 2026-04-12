@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    // Longer timeout for API calls (large JSON), shorter for stream segments
+    const isApiCall = url.includes("player_api.php") || url.includes("get.php");
+    const timeoutMs = isApiCall ? 30000 : 15000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const response = await fetch(url, {
       signal: controller.signal,
@@ -51,8 +54,22 @@ export async function GET(request: NextRequest) {
     if (isM3U8) {
       // For m3u8 manifests: rewrite relative URLs to absolute, then proxy them too
       const text = await response.text();
-      const baseUrl = url.substring(0, url.lastIndexOf("/") + 1);
+      // Use the FINAL URL after redirects (IPTV servers often redirect to a different host)
+      const finalUrl = response.url || url;
+      const baseUrl = finalUrl.substring(0, finalUrl.lastIndexOf("/") + 1);
+      const parsedUrl = new URL(finalUrl);
+      const serverOrigin = parsedUrl.origin; // e.g., http://185.245.1.184:80
       const proxyBase = request.nextUrl.origin + "/api/proxy?url=";
+
+      /**
+       * Resolve a segment/playlist URI from the m3u8 manifest to an absolute URL.
+       * Handles: absolute URLs (http://...), absolute paths (/hls/...), relative paths (segment.ts)
+       */
+      const resolveUri = (uri: string): string => {
+        if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
+        if (uri.startsWith("/")) return serverOrigin + uri;
+        return baseUrl + uri;
+      };
 
       const rewritten = text
         .split("\n")
@@ -62,15 +79,13 @@ export async function GET(request: NextRequest) {
             // Rewrite URIs in EXT-X tags that reference other playlists
             if (trimmed.includes('URI="')) {
               return trimmed.replace(/URI="([^"]+)"/g, (_match, uri) => {
-                const absUri = uri.startsWith("http") ? uri : baseUrl + uri;
-                return `URI="${proxyBase}${encodeURIComponent(absUri)}"`;
+                return `URI="${proxyBase}${encodeURIComponent(resolveUri(uri))}"`;
               });
             }
             return line;
           }
           // Non-comment, non-empty line = segment or playlist URL
-          const absUrl = trimmed.startsWith("http") ? trimmed : baseUrl + trimmed;
-          return proxyBase + encodeURIComponent(absUrl);
+          return proxyBase + encodeURIComponent(resolveUri(trimmed));
         })
         .join("\n");
 

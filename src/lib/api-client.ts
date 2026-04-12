@@ -69,13 +69,28 @@ function stripSurrogates(text: string): string {
 }
 
 /**
- * Fetch JSON from a URL, using the proxy if the URL is HTTP (to avoid mixed content on HTTPS pages).
+ * Check if a URL is external (points to an IPTV server, not our own app).
+ */
+function isExternalUrl(url: string): boolean {
+  if (url.startsWith("/")) return false;
+  if (typeof window === "undefined") return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.origin !== window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Fetch JSON from a URL. Always proxies external URLs to bypass CORS
+ * (IPTV servers don't send CORS headers) and mixed content blocking.
  * Sanitizes response text to remove lone surrogates before parsing.
  */
 async function fetchJson<T>(rawUrl: string): Promise<T> {
   const url = rawUrl.trim();
-  // Use proxy for HTTP URLs when running on HTTPS to avoid mixed content blocking
-  const needsProxy = typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http:");
+  // Always proxy external URLs - IPTV servers don't send CORS headers
+  const needsProxy = typeof window !== "undefined" && isExternalUrl(url);
   const fetchUrl = needsProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
 
   const res = await fetch(fetchUrl);
@@ -470,10 +485,15 @@ export async function fetchAllContent(
 export async function parseM3UFromUrl(
   m3uUrl: string
 ): Promise<ParsedM3UResult> {
-  const res = await fetch(m3uUrl);
+  // Always proxy external M3U URLs to bypass CORS
+  const url = m3uUrl.trim();
+  const needsProxy = typeof window !== "undefined" && isExternalUrl(url);
+  const fetchUrl = needsProxy ? `/api/proxy?url=${encodeURIComponent(url)}` : url;
+
+  const res = await fetch(fetchUrl);
   if (!res.ok) throw new Error(`Failed to fetch M3U: ${res.statusText}`);
   const text = await res.text();
-  return parseM3UContent(text);
+  return parseM3UContent(stripSurrogates(text));
 }
 
 function parseM3UContent(content: string): ParsedM3UResult {
