@@ -19,6 +19,7 @@ import {
   HiBackward,
   HiForward,
 } from "react-icons/hi2";
+import { TbPictureInPicture, TbPictureInPictureOff } from "react-icons/tb";
 
 // Persist player preferences
 function loadPref<T>(key: string, fallback: T): T {
@@ -29,6 +30,14 @@ function loadPref<T>(key: string, fallback: T): T {
 }
 function savePref(key: string, value: unknown) {
   if (typeof window !== "undefined") localStorage.setItem(`iptv-trex-${key}`, JSON.stringify(value));
+}
+
+function formatTime(t: number): string {
+  if (!isFinite(t) || isNaN(t)) return "0:00";
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = Math.floor(t % 60);
+  return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}` : `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 type AspectRatio = "16:9" | "4:3" | "fill";
@@ -94,7 +103,18 @@ export default function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
   const [brightness, setBrightness] = useState(() => loadPref("brightness", 1));
-  const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness"; value: number } | null>(null);
+  const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness" | "seek"; value: number; label?: string } | null>(null);
+
+  // Double-tap seek state
+  const [doubleTapSide, setDoubleTapSide] = useState<"left" | "right" | null>(null);
+  const doubleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
+
+  // Playback speed
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => loadPref("playbackSpeed", 1));
+
+  // PiP state
+  const [isPiP, setIsPiP] = useState(false);
 
   // Sleep timer
   const [sleepTimer, setSleepTimer] = useState<number>(0); // minutes remaining
@@ -105,10 +125,12 @@ export default function VideoPlayer({
   const touchRef = useRef<{
     startX: number; startY: number;
     startVol: number; startBright: number;
+    startTime: number; // video currentTime at swipe start
     side: "left" | "right" | null;
+    direction: "vertical" | "horizontal" | null;
     swiping: boolean;
     lastUpdate: number;
-  }>({ startX: 0, startY: 0, startVol: 1, startBright: 1, side: null, swiping: false, lastUpdate: 0 });
+  }>({ startX: 0, startY: 0, startVol: 1, startBright: 1, startTime: 0, side: null, direction: null, swiping: false, lastUpdate: 0 });
 
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
   // VOD content (movies/series) should NEVER be treated as live
@@ -500,6 +522,7 @@ export default function VideoPlayer({
         case "arrowright": e.preventDefault(); video.currentTime = Math.min(duration, video.currentTime + 10); resetHideTimer(); break;
         case "arrowup": e.preventDefault(); video.volume = Math.min(1, video.volume + 0.1); resetHideTimer(); break;
         case "arrowdown": e.preventDefault(); video.volume = Math.max(0, video.volume - 0.1); resetHideTimer(); break;
+        case "p": e.preventDefault(); togglePiP(); break;
         case "escape": if (isFullscreen) document.exitFullscreen(); break;
       }
     };
@@ -549,6 +572,54 @@ export default function VideoPlayer({
   const handleAudioTrack = (id: number) => { if (hlsRef.current) { hlsRef.current.audioTrack = id; setSelectedAudio(id); } setShowSettings(false); };
   const handleSubtitleTrack = (id: number) => { if (hlsRef.current) { hlsRef.current.subtitleTrack = id; setSelectedSubtitle(id); } setShowSettings(false); };
 
+  // Playback speed
+  const cyclePlaybackSpeed = useCallback(() => {
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    const idx = speeds.indexOf(playbackSpeed);
+    const next = speeds[(idx + 1) % speeds.length];
+    setPlaybackSpeed(next);
+    savePref("playbackSpeed", next);
+    const v = videoRef.current;
+    if (v) v.playbackRate = next;
+  }, [playbackSpeed]);
+
+  // Apply playback speed when video loads
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && !isLive && playbackSpeed !== 1) {
+      v.playbackRate = playbackSpeed;
+    } else if (v && isLive) {
+      v.playbackRate = 1;
+    }
+  }, [src, isLive, playbackSpeed]);
+
+  // PiP toggle
+  const togglePiP = useCallback(async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await v.requestPictureInPicture();
+      }
+    } catch {}
+  }, []);
+
+  // PiP event listeners
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onEnterPiP = () => setIsPiP(true);
+    const onLeavePiP = () => setIsPiP(false);
+    v.addEventListener("enterpictureinpicture", onEnterPiP);
+    v.addEventListener("leavepictureinpicture", onLeavePiP);
+    return () => {
+      v.removeEventListener("enterpictureinpicture", onEnterPiP);
+      v.removeEventListener("leavepictureinpicture", onLeavePiP);
+    };
+  }, []);
+
   const retry = () => {
     setError(null);
     retryCountRef.current = 0;
@@ -561,13 +632,25 @@ export default function VideoPlayer({
     }
   };
 
-  const formatTime = (t: number) => {
-    if (!isFinite(t) || isNaN(t)) return "0:00";
-    const h = Math.floor(t / 3600);
-    const m = Math.floor((t % 3600) / 60);
-    const s = Math.floor(t % 60);
-    return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}` : `${m}:${s.toString().padStart(2, "0")}`;
-  };
+
+  // Double-tap to seek ±10s (like YouTube/premium players)
+  const handleDoubleTap = useCallback((clientX: number) => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+    const rect = container.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const side = relX < rect.width / 2 ? "left" : "right";
+
+    if (side === "right") {
+      video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+    } else {
+      video.currentTime = Math.max(0, video.currentTime - 10);
+    }
+    setDoubleTapSide(side);
+    if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
+    doubleTapTimer.current = setTimeout(() => setDoubleTapSide(null), 500);
+  }, []);
 
   // Smooth touch gesture handlers - read from video element directly for sync
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -581,7 +664,9 @@ export default function VideoPlayer({
       startX: touch.clientX, startY: touch.clientY,
       startVol: video ? video.volume : 1,
       startBright: brightness,
+      startTime: video ? video.currentTime : 0,
       side: relX < rect.width / 2 ? "left" : "right",
+      direction: null,
       swiping: false, lastUpdate: 0,
     };
   }, [brightness]);
@@ -593,8 +678,15 @@ export default function VideoPlayer({
     if (!container) return;
 
     const deltaY = t.startY - touch.clientY;
-    const deltaX = Math.abs(touch.clientX - t.startX);
-    if (Math.abs(deltaY) < 10 || deltaX > Math.abs(deltaY)) return;
+    const deltaX = touch.clientX - t.startX;
+    const absDeltaY = Math.abs(deltaY);
+    const absDeltaX = Math.abs(deltaX);
+
+    // Determine direction on first significant move
+    if (!t.direction) {
+      if (absDeltaX < 10 && absDeltaY < 10) return;
+      t.direction = absDeltaX > absDeltaY ? "horizontal" : "vertical";
+    }
 
     t.swiping = true;
     e.preventDefault();
@@ -605,36 +697,67 @@ export default function VideoPlayer({
     t.lastUpdate = now;
 
     const rect = container.getBoundingClientRect();
-    const sensitivity = deltaY / (rect.height * 0.5);
 
-    if (t.side === "right") {
-      const newVol = Math.max(0, Math.min(1, t.startVol + sensitivity));
+    if (t.direction === "horizontal" && !isLive) {
+      // Horizontal swipe = seek (VOD only)
+      const seekSensitivity = deltaX / rect.width;
       const video = videoRef.current;
-      if (video) {
-        video.volume = newVol;
-        video.muted = false;
-        userVolumeRef.current = newVol;
-        setVolume(newVol);
-        setIsMuted(false);
-        savePref("volume", newVol);
+      if (video && video.duration && isFinite(video.duration)) {
+        const seekAmount = seekSensitivity * video.duration * 0.3; // 30% of duration per full swipe
+        const newTime = Math.max(0, Math.min(video.duration, t.startTime + seekAmount));
+        video.currentTime = newTime;
+        const diff = newTime - t.startTime;
+        const sign = diff >= 0 ? "+" : "";
+        setSwipeIndicator({ type: "seek", value: newTime / video.duration, label: `${sign}${formatTime(Math.abs(diff))}` });
       }
-      setSwipeIndicator({ type: "volume", value: newVol });
-    } else {
-      const newBright = Math.max(0.1, Math.min(1, t.startBright + sensitivity));
-      setBrightness(newBright);
-      savePref("brightness", newBright);
-      setSwipeIndicator({ type: "brightness", value: newBright });
+    } else if (t.direction === "vertical") {
+      // Vertical swipe = volume (right) or brightness (left)
+      const sensitivity = deltaY / (rect.height * 0.5);
+      if (t.side === "right") {
+        const newVol = Math.max(0, Math.min(1, t.startVol + sensitivity));
+        const video = videoRef.current;
+        if (video) {
+          video.volume = newVol;
+          video.muted = false;
+          userVolumeRef.current = newVol;
+          setVolume(newVol);
+          setIsMuted(false);
+          savePref("volume", newVol);
+        }
+        setSwipeIndicator({ type: "volume", value: newVol });
+      } else {
+        const newBright = Math.max(0.1, Math.min(1, t.startBright + sensitivity));
+        setBrightness(newBright);
+        savePref("brightness", newBright);
+        setSwipeIndicator({ type: "brightness", value: newBright });
+      }
     }
-  }, []);
+  }, [isLive]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const wasSwiping = touchRef.current.swiping;
     touchRef.current.swiping = false;
     touchRef.current.side = null;
+    touchRef.current.direction = null;
     if (swipeIndicatorTimer.current) clearTimeout(swipeIndicatorTimer.current);
     swipeIndicatorTimer.current = setTimeout(() => setSwipeIndicator(null), 600);
-    if (!wasSwiping) resetHideTimer();
-  }, [resetHideTimer]);
+
+    // Double-tap detection (only if not swiping)
+    if (!wasSwiping && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (now - last.time < 300 && Math.abs(touch.clientX - last.x) < 50) {
+        handleDoubleTap(touch.clientX);
+        lastTapRef.current = { time: 0, x: 0 }; // reset to prevent triple-tap
+      } else {
+        lastTapRef.current = { time: now, x: touch.clientX };
+        resetHideTimer();
+      }
+    } else if (!wasSwiping) {
+      resetHideTimer();
+    }
+  }, [resetHideTimer, handleDoubleTap]);
 
   // Sleep timer logic
   const startSleepTimer = useCallback((minutes: number) => {
@@ -669,24 +792,51 @@ export default function VideoPlayer({
       className="relative w-full h-full bg-black select-none group"
       onMouseMove={resetHideTimer}
       onClick={() => { if (!showSettings) resetHideTimer(); }}
+      onDoubleClick={(e) => { handleDoubleTap(e.clientX); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <video ref={videoRef} className={clsx("w-full h-full", aspectClass)} style={{ filter: `brightness(${brightness})` }} playsInline />
 
+      {/* Double-tap seek ripple animation */}
+      {doubleTapSide && (
+        <div className={clsx(
+          "absolute top-0 h-full w-1/2 z-20 pointer-events-none flex items-center",
+          doubleTapSide === "right" ? "right-0 justify-center" : "left-0 justify-center"
+        )}>
+          <div className="flex flex-col items-center animate-ping-once">
+            {doubleTapSide === "right" ? <HiForward className="h-10 w-10 text-white/80" /> : <HiBackward className="h-10 w-10 text-white/80" />}
+            <span className="text-sm font-bold text-white/80 mt-1">10s</span>
+          </div>
+        </div>
+      )}
+
       {/* Swipe gesture indicator - no transition for instant response */}
       {swipeIndicator && (
         <div className={clsx(
-          "absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-2 bg-black/70 rounded-2xl px-3 py-4 backdrop-blur-sm",
-          swipeIndicator.type === "volume" ? "right-6" : "left-6"
+          "absolute z-30 flex flex-col items-center gap-2 bg-black/70 rounded-2xl backdrop-blur-sm",
+          swipeIndicator.type === "seek"
+            ? "top-1/3 left-1/2 -translate-x-1/2 px-5 py-3"
+            : "top-1/2 -translate-y-1/2 px-3 py-4",
+          swipeIndicator.type === "volume" && "right-6",
+          swipeIndicator.type === "brightness" && "left-6"
         )}>
-          {swipeIndicator.type === "volume" ? <HiSpeakerWave className="h-5 w-5 text-white" /> : <HiSun className="h-5 w-5 text-yellow-400" />}
-          <div className="w-1 h-24 bg-white/20 rounded-full relative overflow-hidden">
-            <div className={clsx("absolute bottom-0 w-full rounded-full", swipeIndicator.type === "volume" ? "bg-amber-500" : "bg-yellow-400")}
-              style={{ height: `${swipeIndicator.value * 100}%` }} />
-          </div>
-          <span className="text-[10px] text-white font-medium">{Math.round(swipeIndicator.value * 100)}%</span>
+          {swipeIndicator.type === "seek" ? (
+            <>
+              <HiForward className="h-5 w-5 text-amber-400" />
+              <span className="text-lg font-bold text-white tabular-nums">{swipeIndicator.label}</span>
+            </>
+          ) : (
+            <>
+              {swipeIndicator.type === "volume" ? <HiSpeakerWave className="h-5 w-5 text-white" /> : <HiSun className="h-5 w-5 text-yellow-400" />}
+              <div className="w-1 h-24 bg-white/20 rounded-full relative overflow-hidden">
+                <div className={clsx("absolute bottom-0 w-full rounded-full", swipeIndicator.type === "volume" ? "bg-amber-500" : "bg-yellow-400")}
+                  style={{ height: `${swipeIndicator.value * 100}%` }} />
+              </div>
+              <span className="text-[10px] text-white font-medium">{Math.round(swipeIndicator.value * 100)}%</span>
+            </>
+          )}
         </div>
       )}
 
@@ -803,8 +953,9 @@ export default function VideoPlayer({
               {/* Skip backward for VOD */}
               {!isLive && (
                 <button onClick={() => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, v.currentTime - 10); }}
-                  className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
+                  className="text-white/80 hover:text-white h-10 flex items-center justify-center gap-0.5 px-1" title="-10s">
                   <HiBackward className="h-5 w-5" />
+                  <span className="text-[10px] font-semibold">10</span>
                 </button>
               )}
               <button onClick={togglePlayPause} className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
@@ -813,7 +964,8 @@ export default function VideoPlayer({
               {/* Skip forward for VOD */}
               {!isLive && (
                 <button onClick={() => { const v = videoRef.current; if (v) v.currentTime = Math.min(v.duration || 0, v.currentTime + 10); }}
-                  className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
+                  className="text-white/80 hover:text-white h-10 flex items-center justify-center gap-0.5 px-1" title="+10s">
+                  <span className="text-[10px] font-semibold">10</span>
                   <HiForward className="h-5 w-5" />
                 </button>
               )}
@@ -826,7 +978,22 @@ export default function VideoPlayer({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Playback speed for VOD */}
+              {!isLive && (
+                <button onClick={cyclePlaybackSpeed}
+                  className={clsx("rounded-lg px-2 py-1 text-xs font-bold h-8 min-w-[40px]",
+                    playbackSpeed !== 1 ? "bg-amber-500/30 text-amber-300" : "bg-white/10 text-white/70 hover:bg-white/20"
+                  )}>
+                  {playbackSpeed}x
+                </button>
+              )}
+              {/* PiP */}
+              {typeof document !== "undefined" && document.pictureInPictureEnabled && (
+                <button onClick={togglePiP} className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center" title="Bild-in-Bild">
+                  {isPiP ? <TbPictureInPictureOff className="h-5 w-5" /> : <TbPictureInPicture className="h-5 w-5" />}
+                </button>
+              )}
               {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
                 <div className="relative">
                   <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
