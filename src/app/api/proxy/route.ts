@@ -22,16 +22,23 @@ export async function GET(request: NextRequest) {
     const timeoutMs = isApiCall ? 30000 : 15000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+    // Forward Range header for VOD seeking support
+    const reqHeaders: Record<string, string> = {
+      "User-Agent": "VLC/3.0.20 LibVLC/3.0.20",
+      "Accept": "*/*",
+    };
+    const rangeHeader = request.headers.get("Range");
+    if (rangeHeader) {
+      reqHeaders["Range"] = rangeHeader;
+    }
+
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        "User-Agent": "VLC/3.0.20 LibVLC/3.0.20",
-        "Accept": "*/*",
-      },
+      headers: reqHeaders,
     });
     clearTimeout(timeout);
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 206) {
       // Provide meaningful error info for IPTV-specific status codes
       let errorDetail = `Upstream error: ${response.status}`;
       if (response.status === 456) {
@@ -107,9 +114,14 @@ export async function GET(request: NextRequest) {
     if (contentType) headers.set("Content-Type", contentType);
     const contentLength = response.headers.get("content-length");
     if (contentLength) headers.set("Content-Length", contentLength);
+    // Forward range/seek headers for VOD support
+    const acceptRanges = response.headers.get("accept-ranges");
+    if (acceptRanges) headers.set("Accept-Ranges", acceptRanges);
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) headers.set("Content-Range", contentRange);
 
     return new NextResponse(response.body, {
-      status: 200,
+      status: response.status, // Preserve 206 Partial Content for range requests
       headers,
     });
   } catch (error) {
@@ -127,7 +139,8 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Range",
+      "Access-Control-Allow-Headers": "Content-Type, Range, Accept-Ranges",
+      "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
       "Access-Control-Max-Age": "86400",
     },
   });

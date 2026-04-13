@@ -210,13 +210,12 @@ export default function PlayerPage() {
   const handleNext = useCallback(() => switchChannelInPlace("next"), [switchChannelInPlace]);
   const handlePrev = useCallback(() => switchChannelInPlace("prev"), [switchChannelInPlace]);
 
-  // Smart back navigation:
-  // 1. If channel list open → close it
-  // 2. If fullscreen → exit fullscreen
-  // 3. Otherwise → go back to where user came from (live/movies/series page)
+  // Smart back navigation using refs to avoid stale closures and duplicate history entries
   const backTargetRef = useRef<string>("/");
+  const showChannelListRef = useRef(false);
+
+  // Keep refs in sync
   useEffect(() => {
-    // Remember where the user came from based on stream type
     if (type === "live") backTargetRef.current = "/live";
     else if (type === "movie") backTargetRef.current = "/movies";
     else if (type === "series") backTargetRef.current = "/series";
@@ -224,30 +223,36 @@ export default function PlayerPage() {
   }, [type]);
 
   useEffect(() => {
-    // Push a dummy state so first "back" doesn't leave the page
+    showChannelListRef.current = showChannelList;
+  }, [showChannelList]);
+
+  // Push ONE dummy history entry on mount, handle popstate with refs (no deps = no re-push)
+  useEffect(() => {
     window.history.pushState({ iptv: "player" }, "");
+
     const handlePopState = () => {
-      // If we have channel list open, close it instead of navigating away
-      if (showChannelList) {
+      // If channel list open → close it, re-push state
+      if (showChannelListRef.current) {
         setShowChannelList(false);
         window.history.pushState({ iptv: "player" }, "");
         return;
       }
-      // If fullscreen, exit fullscreen instead of navigating away
+      // If fullscreen → exit fullscreen, re-push state
       if (document.fullscreenElement) {
         document.exitFullscreen();
         window.history.pushState({ iptv: "player" }, "");
         return;
       }
-      // Navigate back to the category page (not app restart)
+      // Navigate back to the category page
       router.push(backTargetRef.current);
     };
+
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [router, showChannelList]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // INTENTIONALLY empty - refs handle state, only mount once
 
   const handleBack = () => {
-    // Go back to category page, not app restart
     router.push(backTargetRef.current);
   };
 
@@ -272,6 +277,7 @@ export default function PlayerPage() {
       <VideoPlayer
         src={streamUrl}
         title={displayName}
+        contentType={type as "live" | "movie" | "series"}
         initialPosition={initialPosition}
         onChannelNext={type === "live" ? handleNext : undefined}
         onChannelPrev={type === "live" ? handlePrev : undefined}

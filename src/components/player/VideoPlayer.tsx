@@ -45,6 +45,7 @@ type AspectRatio = "16:9" | "4:3" | "fill";
 interface VideoPlayerProps {
   src: string;
   title?: string;
+  contentType?: "live" | "movie" | "series";
   initialPosition?: number;
   onChannelNext?: () => void;
   onChannelPrev?: () => void;
@@ -70,6 +71,7 @@ function proxyUrl(url: string): string {
 export default function VideoPlayer({
   src,
   title,
+  contentType = "live",
   initialPosition,
   onChannelNext,
   onChannelPrev,
@@ -133,10 +135,10 @@ export default function VideoPlayer({
   }>({ startX: 0, startY: 0, startVol: 1, startBright: 1, startTime: 0, side: null, direction: null, swiping: false, lastUpdate: 0 });
 
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
-  // VOD content (movies/series) should NEVER be treated as live
-  // Check the src extension to determine content type
-  const isVodContent = /\.(mp4|mkv|avi|mov|wmv|flv|webm|ts)(\?|$)/i.test(src);
-  const isLive = isVodContent ? false : (!duration || duration === Infinity);
+  // Use contentType prop as source of truth - URL regex is unreliable for Xtream URLs
+  const isVodContent = contentType === "movie" || contentType === "series" || /\.(mp4|mkv|avi|mov|wmv|flv|webm|ts)(\?|$)/i.test(src);
+  // isLive is definitively false for movies/series - never hide seek bar for VOD
+  const isLive = isVodContent ? false : (contentType === "live" || !duration || duration === Infinity);
 
   // Track pending play() promise to prevent AbortError
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -208,22 +210,14 @@ export default function VideoPlayer({
     // Restore volume ref in case load() triggered volumechange events
     userVolumeRef.current = savedVolume;
 
-    // Small delay to ensure previous connection is fully released
+    // Delay to ensure previous connection is fully released by server
+    // Xtream servers need time to drop the previous stream slot (456 error otherwise)
     const startTimer = setTimeout(() => {
-      if (isHLS) {
+      if (isHLS || isVodContent) {
+        // ALWAYS use HLS.js for both live HLS and VOD content
+        // Xtream servers often serve HLS even for .mp4 URLs (redirect to m3u8)
+        // HLS.js handles this correctly, plus handles CORS via proxy
         tryHlsProxy(video);
-      } else if (isVodContent) {
-        // VOD content (movies/series): Try direct URL first (bypasses proxy timeout issues)
-        // then proxy as fallback for CORS issues
-        setLoadingStatus("Lade Film/Serie...");
-        video.src = src;
-        video.onerror = () => {
-          // Direct failed (likely CORS) - try via proxy
-          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
-          video.src = proxyUrl(src);
-          if (autoPlay) safePlay(video);
-        };
-        if (autoPlay) safePlay(video);
       } else {
         setLoadingStatus("Lade Stream...");
         video.src = proxyUrl(src);
@@ -248,19 +242,21 @@ export default function VideoPlayer({
       const proxiedSrc = proxyUrl(src);
 
       const hls = new Hls({
-        maxBufferLength: 10,
-        maxMaxBufferLength: 30,
-        maxBufferSize: 30 * 1000 * 1000,
+        maxBufferLength: isVodContent ? 30 : 10,
+        maxMaxBufferLength: isVodContent ? 120 : 30,
+        maxBufferSize: isVodContent ? 100 * 1000 * 1000 : 30 * 1000 * 1000,
         maxBufferHole: 0.5,
-        lowLatencyMode: true,
-        startFragPrefetch: true,
+        lowLatencyMode: !isVodContent,
+        startFragPrefetch: !isVodContent, // Don't prefetch VOD to avoid 456
         enableWorker: true,
-        fragLoadingTimeOut: 15000,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 4,
+        fragLoadingTimeOut: isVodContent ? 30000 : 15000,
+        manifestLoadingTimeOut: isVodContent ? 20000 : 10000,
+        levelLoadingTimeOut: isVodContent ? 20000 : 10000,
+        fragLoadingMaxRetry: isVodContent ? 6 : 4,
         manifestLoadingMaxRetry: 4,
         levelLoadingMaxRetry: 4,
+        // Limit concurrent requests for VOD to avoid 456 max-connection errors
+        maxLoadingDelay: isVodContent ? 4 : 1,
       });
 
       hls.loadSource(proxiedSrc);
@@ -299,18 +295,22 @@ export default function VideoPlayer({
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
         const httpStatus = data.response?.code;
+        // Also check response text for proxy-forwarded IPTV error codes
+        const responseText = typeof data.response?.data === "string" ? data.response.data : "";
+        const is456 = httpStatus === 456 || responseText.includes("STREAM_BLOCKED_456");
+        const is458 = httpStatus === 458 || responseText.includes("MAX_CONNECTIONS_458");
         // 456 = stream blocked / max connections on some servers
         // 458 = max connections reached
         // Both should auto-retry after releasing the previous connection
-        if (httpStatus === 456 || httpStatus === 458) {
+        if (is456 || is458) {
           destroyHls();
-          if (retryCountRef.current < 3) {
+          if (retryCountRef.current < 5) {
             retryCountRef.current++;
-            const waitTime = retryCountRef.current * 1500; // 1.5s, 3s, 4.5s
-            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
+            const waitTime = retryCountRef.current * 2000; // 2s, 4s, 6s, 8s, 10s
+            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/5)...`);
             setTimeout(() => tryHlsProxy(vid), waitTime);
           } else {
-            setError(httpStatus === 456
+            setError(is456
               ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
               : "Maximale Verbindungen erreicht. Bitte warte kurz und versuche es erneut."
             );
@@ -327,14 +327,22 @@ export default function VideoPlayer({
                 setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/3)...`);
                 hls.startLoad();
               } else {
+                // HLS failed — fallback to direct video element
                 setLoadingStatus("Versuche alternatives Format...");
                 destroyHls();
-                vid.src = proxyUrl(src);
-                vid.onerror = () => {
-                  vid.onerror = null;
-                  setError("Stream konnte nicht geladen werden.");
-                  setIsBuffering(false);
-                };
+                // For VOD, try direct URL first (may bypass CORS for same-protocol)
+                // Then proxy as fallback
+                if (isVodContent) {
+                  vid.src = src;
+                  vid.onerror = () => {
+                    vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+                    vid.src = proxyUrl(src);
+                    if (autoPlay) safePlay(vid);
+                  };
+                } else {
+                  vid.src = proxyUrl(src);
+                  vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+                }
                 if (autoPlay) safePlay(vid);
               }
               break;
@@ -343,7 +351,16 @@ export default function VideoPlayer({
               break;
             default:
               destroyHls();
-              vid.src = proxyUrl(src);
+              if (isVodContent) {
+                vid.src = src;
+                vid.onerror = () => {
+                  vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+                  vid.src = proxyUrl(src);
+                  if (autoPlay) safePlay(vid);
+                };
+              } else {
+                vid.src = proxyUrl(src);
+              }
               if (autoPlay) safePlay(vid);
               break;
           }
@@ -934,10 +951,11 @@ export default function VideoPlayer({
                     <div className="h-full rounded-full bg-amber-500" style={{ width: `${progressPercent}%` }} />
                   </div>
                 </div>
-                <input type="range" min={0} max={duration || 0} value={currentTime} onChange={handleSeek}
+                {/* Use duration as max, minimum 1 to ensure slider is always draggable */}
+                <input type="range" min={0} max={duration > 0 ? duration : 1} step={0.1} value={currentTime} onChange={handleSeek}
                   className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[14px] [&::-webkit-slider-thumb]:w-[14px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white" />
               </div>
-              <span className="text-xs font-semibold text-white/90 w-12 tabular-nums">{formatTime(duration)}</span>
+              <span className="text-xs font-semibold text-white/90 w-12 tabular-nums">{duration > 0 ? formatTime(duration) : "--:--"}</span>
             </div>
           )}
 
