@@ -16,6 +16,8 @@ import {
   HiCog6Tooth,
   HiSun,
   HiClock,
+  HiBackward,
+  HiForward,
 } from "react-icons/hi2";
 
 // Persist player preferences
@@ -109,7 +111,10 @@ export default function VideoPlayer({
   }>({ startX: 0, startY: 0, startVol: 1, startBright: 1, side: null, swiping: false, lastUpdate: 0 });
 
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
-  const isLive = !duration || duration === Infinity;
+  // VOD content (movies/series) should NEVER be treated as live
+  // Check the src extension to determine content type
+  const isVodContent = /\.(mp4|mkv|avi|mov|wmv|flv|webm|ts)(\?|$)/i.test(src);
+  const isLive = isVodContent ? false : (!duration || duration === Infinity);
 
   // Track pending play() promise to prevent AbortError
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -185,6 +190,18 @@ export default function VideoPlayer({
     const startTimer = setTimeout(() => {
       if (isHLS) {
         tryHlsProxy(video);
+      } else if (isVodContent) {
+        // VOD content (movies/series): Try direct URL first (bypasses proxy timeout issues)
+        // then proxy as fallback for CORS issues
+        setLoadingStatus("Lade Film/Serie...");
+        video.src = src;
+        video.onerror = () => {
+          // Direct failed (likely CORS) - try via proxy
+          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+          video.src = proxyUrl(src);
+          if (autoPlay) safePlay(video);
+        };
+        if (autoPlay) safePlay(video);
       } else {
         setLoadingStatus("Lade Stream...");
         video.src = proxyUrl(src);
@@ -319,7 +336,8 @@ export default function VideoPlayer({
       destroyHls();
       if (video) video.onerror = null;
     };
-  }, [src, autoPlay, isHLS, destroyHls, safePlay]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, autoPlay, isHLS, isVodContent, destroyHls, safePlay]);
 
   // Seek to initial position
   useEffect(() => {
@@ -782,9 +800,23 @@ export default function VideoPlayer({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              {/* Skip backward for VOD */}
+              {!isLive && (
+                <button onClick={() => { const v = videoRef.current; if (v) v.currentTime = Math.max(0, v.currentTime - 10); }}
+                  className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
+                  <HiBackward className="h-5 w-5" />
+                </button>
+              )}
               <button onClick={togglePlayPause} className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
                 {isPlaying ? <HiPause className="h-5 w-5" /> : <HiPlay className="h-5 w-5" />}
               </button>
+              {/* Skip forward for VOD */}
+              {!isLive && (
+                <button onClick={() => { const v = videoRef.current; if (v) v.currentTime = Math.min(v.duration || 0, v.currentTime + 10); }}
+                  className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
+                  <HiForward className="h-5 w-5" />
+                </button>
+              )}
               <div className="flex items-center gap-1.5 group/vol">
                 <button onClick={toggleMute} className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
                   {isMuted || volume === 0 ? <HiSpeakerXMark className="h-5 w-5" /> : <HiSpeakerWave className="h-5 w-5" />}

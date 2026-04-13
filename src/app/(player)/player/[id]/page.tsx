@@ -210,12 +210,23 @@ export default function PlayerPage() {
   const handleNext = useCallback(() => switchChannelInPlace("next"), [switchChannelInPlace]);
   const handlePrev = useCallback(() => switchChannelInPlace("prev"), [switchChannelInPlace]);
 
-  // Prevent accidental back navigation in landscape / during playback
-  // Push extra history entry so hardware back doesn't immediately leave the player
+  // Smart back navigation:
+  // 1. If channel list open → close it
+  // 2. If fullscreen → exit fullscreen
+  // 3. Otherwise → go back to where user came from (live/movies/series page)
+  const backTargetRef = useRef<string>("/");
+  useEffect(() => {
+    // Remember where the user came from based on stream type
+    if (type === "live") backTargetRef.current = "/live";
+    else if (type === "movie") backTargetRef.current = "/movies";
+    else if (type === "series") backTargetRef.current = "/series";
+    else backTargetRef.current = "/";
+  }, [type]);
+
   useEffect(() => {
     // Push a dummy state so first "back" doesn't leave the page
     window.history.pushState({ iptv: "player" }, "");
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = () => {
       // If we have channel list open, close it instead of navigating away
       if (showChannelList) {
         setShowChannelList(false);
@@ -228,16 +239,16 @@ export default function PlayerPage() {
         window.history.pushState({ iptv: "player" }, "");
         return;
       }
-      // Otherwise actually go back
-      window.removeEventListener("popstate", handlePopState);
-      router.back();
+      // Navigate back to the category page (not app restart)
+      router.push(backTargetRef.current);
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [router, showChannelList]);
 
   const handleBack = () => {
-    router.back();
+    // Go back to category page, not app restart
+    router.push(backTargetRef.current);
   };
 
   const handleChannelSelect = (channel: typeof playlist[0]) => {
