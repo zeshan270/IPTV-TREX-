@@ -1,0 +1,383 @@
+diff --git a/src/components/player/VideoPlayer.tsx b/src/components/player/VideoPlayer.tsx
+index fffc477..4d397d3 100644
+--- a/src/components/player/VideoPlayer.tsx
++++ b/src/components/player/VideoPlayer.tsx
+@@ -18,6 +18,8 @@ import {
+   HiClock,
+   HiBackward,
+   HiForward,
++  HiSignal,
++  HiWrenchScrewdriver,
+ } from "react-icons/hi2";
+ import { TbPictureInPicture, TbPictureInPictureOff } from "react-icons/tb";
+@@ -54,6 +56,12 @@ interface VideoPlayerProps {
+   autoPlay?: boolean;
+ }
+ 
++function normalizeInitialVolume(rawVolume: number): number {
++  if (!Number.isFinite(rawVolume)) return 1;
++  if (rawVolume <= 0) return 0.8; // Avoid silent startup after persisted mute/0-volume states
++  return Math.min(1, Math.max(0, rawVolume));
++}
++
+ /**
+  * Build a proxied URL to bypass CORS/mixed-content for IPTV streams.
+  */
+@@ -87,11 +95,13 @@ export default function VideoPlayer({
+   const initialSeekDoneRef = useRef(false);
+   const retryCountRef = useRef(0);
+   const swipeIndicatorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
++  const hlsVolumeFixIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
++  const lastUiUpdateRef = useRef(0);
+ 
+   const [isPlaying, setIsPlaying] = useState(false);
+   const [currentTime, setCurrentTime] = useState(0);
+   const [duration, setDuration] = useState(0);
+-  const [volume, setVolume] = useState(() => loadPref("volume", 1));
++  const [volume, setVolume] = useState(() => normalizeInitialVolume(loadPref("volume", 1)));
+   const [isMuted, setIsMuted] = useState(false);
+   const [isFullscreen, setIsFullscreen] = useState(false);
+   const [showControls, setShowControls] = useState(true);
+@@ -106,6 +116,14 @@ export default function VideoPlayer({
+   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
+   const [brightness, setBrightness] = useState(() => loadPref("brightness", 1));
+   const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness" | "seek"; value: number; label?: string } | null>(null);
++  const [showHealthOverlay, setShowHealthOverlay] = useState(false);
++  // Keep stability-first defaults (Fast-Zap can be enabled manually by users)
++  const [fastZapMode, setFastZapMode] = useState(false);
++  const [playbackHealth, setPlaybackHealth] = useState({
++    bufferAheadSec: 0,
++    bitrateKbps: 0,
++    droppedFrames: 0,
++  });
+ 
+   // Double-tap seek state
+   const [doubleTapSide, setDoubleTapSide] = useState<"left" | "right" | null>(null);
+@@ -142,6 +160,8 @@ export default function VideoPlayer({
+ 
+   // Track pending play() promise to prevent AbortError
+   const playPromiseRef = useRef<Promise<void> | null>(null);
++  const userVolumeRef = useRef(normalizeInitialVolume(loadPref("volume", 1)));
++  const lastAudibleVolumeRef = useRef(Math.max(userVolumeRef.current, 0.2));
+ 
+   // Safe play function - waits for any pending play() to settle before calling new one
+   const safePlay = useCallback(async (vid: HTMLVideoElement) => {
+@@ -149,7 +169,8 @@ export default function VideoPlayer({
+     if (playPromiseRef.current) {
+       try { await playPromiseRef.current; } catch {}
+     }
+-    const savedVol = userVolumeRef.current;
++    const savedVol = normalizeInitialVolume(userVolumeRef.current);
++    userVolumeRef.current = savedVol;
+     vid.volume = savedVol;
+     vid.muted = false;
+     const promise = vid.play();
+@@ -186,6 +207,20 @@ export default function VideoPlayer({
+     }
+   }, []);
+ 
++  const recoverAudioTrack = useCallback(() => {
++    const hls = hlsRef.current;
++    if (!hls || !hls.audioTracks?.length) return false;
++
++    const currentTrack = hls.audioTrack;
++    const fallbackTrack = currentTrack > 0 ? 0 : (hls.audioTracks.length > 1 ? 1 : 0);
++    if (fallbackTrack === currentTrack) return false;
++
++    hls.audioTrack = fallbackTrack;
++    setSelectedAudio(fallbackTrack);
++    setLoadingStatus(`Audio-Track gewechselt (${fallbackTrack + 1})`);
++    return true;
++  }, []);
++
+   // Initialize player
+   useEffect(() => {
+     const video = videoRef.current;
+@@ -228,7 +263,7 @@ export default function VideoPlayer({
+         };
+         if (autoPlay) safePlay(video);
+       }
+-    }, 200);
++    }, fastZapMode ? 80 : 200);
+ 
+     function tryHlsProxy(vid: HTMLVideoElement) {
+       if (!Hls.isSupported()) {
+@@ -273,14 +308,18 @@ export default function VideoPlayer({
+         // AGGRESSIVE volume restore: run every 200ms for 3 seconds after stream load
+         // This catches ALL edge cases where the browser resets volume
+         let volFixAttempts = 0;
+-        const volFixInterval = setInterval(() => {
++        if (hlsVolumeFixIntervalRef.current) clearInterval(hlsVolumeFixIntervalRef.current);
++        hlsVolumeFixIntervalRef.current = setInterval(() => {
+           volFixAttempts++;
+           const targetVol = userVolumeRef.current;
+           if (vid.volume !== targetVol || vid.muted) {
+             vid.volume = targetVol;
+             vid.muted = false;
+           }
+-          if (volFixAttempts >= 15) clearInterval(volFixInterval); // 15 * 200ms = 3s
++          if (volFixAttempts >= 15 && hlsVolumeFixIntervalRef.current) {
++            clearInterval(hlsVolumeFixIntervalRef.current);
++            hlsVolumeFixIntervalRef.current = null;
++          }
+         }, 200);
+ 
+         if (autoPlay) {
+@@ -289,6 +328,10 @@ export default function VideoPlayer({
+ 
+         setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
+         setSubtitleTracks(hls.subtitleTracks.map((t, i) => ({ id: i, name: t.name || `Subtitle ${i + 1}`, lang: t.lang || "" })));
++        if (hls.audioTracks.length > 0 && (hls.audioTrack < 0 || hls.audioTrack >= hls.audioTracks.length)) {
++          hls.audioTrack = 0;
++          setSelectedAudio(0);
++        }
+       });
+ 
+       hls.on(Hls.Events.FRAG_LOADED, () => { setIsBuffering(false); setLoadingStatus(""); });
+@@ -306,7 +349,7 @@ export default function VideoPlayer({
+           destroyHls();
+           if (retryCountRef.current < 5) {
+             retryCountRef.current++;
+-            const waitTime = retryCountRef.current * 2000; // 2s, 4s, 6s, 8s, 10s
++            const waitTime = fastZapMode ? retryCountRef.current * 1000 : retryCountRef.current * 2000; // fast zap recovers quicker
+             setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/5)...`);
+             setTimeout(() => tryHlsProxy(vid), waitTime);
+           } else {
+@@ -347,7 +390,9 @@ export default function VideoPlayer({
+               }
+               break;
+             case Hls.ErrorTypes.MEDIA_ERROR:
+-              hls.recoverMediaError();
++              if (!recoverAudioTrack()) {
++                hls.recoverMediaError();
++              }
+               break;
+             default:
+               destroyHls();
+@@ -372,11 +417,37 @@ export default function VideoPlayer({
+ 
+     return () => {
+       clearTimeout(startTimer);
++      if (hlsVolumeFixIntervalRef.current) {
++        clearInterval(hlsVolumeFixIntervalRef.current);
++        hlsVolumeFixIntervalRef.current = null;
++      }
+       destroyHls();
+       if (video) video.onerror = null;
+     };
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [src, autoPlay, isHLS, isVodContent, destroyHls, safePlay]);
++  }, [src, autoPlay, isHLS, isVodContent, destroyHls, safePlay, recoverAudioTrack, fastZapMode]);
++
++  // Playback health sampling (small overlay for support/power users)
++  useEffect(() => {
++    if (!showHealthOverlay) return;
++    const timer = setInterval(() => {
++      const video = videoRef.current;
++      if (!video) return;
++
++      const bufferedEnd = video.buffered.length ? video.buffered.end(video.buffered.length - 1) : video.currentTime;
++      const bufferAheadSec = Math.max(0, bufferedEnd - video.currentTime);
++      const droppedFrames = video.getVideoPlaybackQuality?.().droppedVideoFrames ?? 0;
++      const bitrateKbps = hlsRef.current?.bandwidthEstimate ? Math.round(hlsRef.current.bandwidthEstimate / 1000) : 0;
++
++      setPlaybackHealth({
++        bufferAheadSec: Number(bufferAheadSec.toFixed(1)),
++        droppedFrames,
++        bitrateKbps,
++      });
++    }, 1000);
++
++    return () => clearInterval(timer);
++  }, [showHealthOverlay]);
+ 
+   // Seek to initial position
+   useEffect(() => {
+@@ -392,13 +463,13 @@ export default function VideoPlayer({
+ 
+   // Position save interval
+   useEffect(() => {
+-    if (!onPositionChange) return;
++    if (!onPositionChange || isLive) return;
+     positionIntervalRef.current = setInterval(() => {
+       const video = videoRef.current;
+       if (video && !video.paused && isFinite(video.currentTime) && video.currentTime > 0) onPositionChange(video.currentTime, video.duration || 0);
+     }, 5000);
+     return () => { if (positionIntervalRef.current) clearInterval(positionIntervalRef.current); };
+-  }, [onPositionChange]);
++  }, [onPositionChange, isLive]);
+ 
+   // Save position on unmount
+   useEffect(() => {
+@@ -408,14 +479,12 @@ export default function VideoPlayer({
+     };
+   }, [onPositionChange]);
+ 
+-  // Ref to track user-intended volume (never overwritten by browser resets)
+-  const userVolumeRef = useRef(loadPref("volume", 1));
+-
+   // Force-apply saved volume to video element
+   const applyVolume = useCallback(() => {
+     const video = videoRef.current;
+     if (!video) return;
+-    const vol = userVolumeRef.current;
++    const vol = normalizeInitialVolume(userVolumeRef.current);
++    userVolumeRef.current = vol;
+     video.volume = vol;
+     video.muted = false;
+     setVolume(vol);
+@@ -435,7 +504,11 @@ export default function VideoPlayer({
+     };
+     const onPause = () => setIsPlaying(false);
+     const onTimeUpdate = () => {
+-      setCurrentTime(video.currentTime);
++      const now = performance.now();
++      if (now - lastUiUpdateRef.current >= 250) {
++        setCurrentTime(video.currentTime);
++        lastUiUpdateRef.current = now;
++      }
+       // Keep applying volume for first 5 timeupdate events after play
+       if (volumeFixCount < 5 && !video.paused) {
+         volumeFixCount++;
+@@ -466,9 +539,11 @@ export default function VideoPlayer({
+       if (vol > 0 && vol < 1) {
+         // Non-default value = definitely a user choice
+         userVolumeRef.current = vol;
++        lastAudibleVolumeRef.current = vol;
+         savePref("volume", vol);
+       } else if (vol === 1 && userVolumeRef.current === 1) {
+         // User had it at max and it stayed at max - fine
++        lastAudibleVolumeRef.current = vol;
+         savePref("volume", vol);
+       }
+       // vol=0 or vol=1 when userVolumeRef differs ? likely browser reset, ignore
+@@ -561,11 +636,21 @@ export default function VideoPlayer({
+     v.muted = !v.muted;
+     if (!v.muted) {
+       // When unmuting, ensure volume is restored
+-      v.volume = userVolumeRef.current;
++      const restoreVol = userVolumeRef.current > 0 ? userVolumeRef.current : lastAudibleVolumeRef.current;
++      userVolumeRef.current = restoreVol;
++      v.volume = restoreVol;
++      savePref("volume", restoreVol);
+     }
+   };
+ 
+-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => { const v = videoRef.current; if (v) v.currentTime = Number(e.target.value); };
++  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
++    const v = videoRef.current;
++    if (!v) return;
++    const nextTime = Number(e.target.value);
++    v.currentTime = nextTime;
++    setCurrentTime(nextTime);
++    lastUiUpdateRef.current = performance.now();
++  };
+ 
+   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const v = videoRef.current;
+@@ -574,6 +659,7 @@ export default function VideoPlayer({
+     v.volume = newVol;
+     v.muted = false;
+     userVolumeRef.current = newVol;
++    if (newVol > 0) lastAudibleVolumeRef.current = newVol;
+     setVolume(newVol);
+     setIsMuted(false);
+     savePref("volume", newVol);
+@@ -649,6 +735,31 @@ export default function VideoPlayer({
+     }
+   };
+ 
++  const quickFixStream = useCallback(() => {
++    setError(null);
++    setIsBuffering(true);
++    setLoadingStatus("Stream wird repariert...");
++    retryCountRef.current = 0;
++    setShowSettings(false);
++
++    // 1) Try audio fallback first
++    recoverAudioTrack();
++
++    // 2) Hard reload stream
++    destroyHls();
++    const video = videoRef.current;
++    if (video) {
++      video.pause();
++      video.removeAttribute("src");
++      video.load();
++      setTimeout(() => {
++        video.src = proxyUrl(src);
++        video.load();
++        void safePlay(video);
++      }, fastZapMode ? 120 : 280);
++    }
++  }, [destroyHls, recoverAudioTrack, safePlay, src, fastZapMode]);
++
+ 
+   // Double-tap to seek ±10s (like YouTube/premium players)
+   const handleDoubleTap = useCallback((clientX: number) => {
+@@ -869,10 +980,27 @@ export default function VideoPlayer({
+       {error && (
+         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-4">
+           <p className="text-red-400 text-sm text-center px-8">{error}</p>
+-          <button onClick={(e) => { e.stopPropagation(); retry(); }}
+-            className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-sm text-white hover:bg-amber-500">
+-            <HiArrowPath className="h-4 w-4" /> Erneut versuchen
+-          </button>
++          <div className="flex items-center gap-2">
++            <button onClick={(e) => { e.stopPropagation(); quickFixStream(); }}
++              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm text-white hover:bg-emerald-500">
++              <HiWrenchScrewdriver className="h-4 w-4" /> Stream reparieren
++            </button>
++            <button onClick={(e) => { e.stopPropagation(); retry(); }}
++              className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm text-white hover:bg-amber-500">
++              <HiArrowPath className="h-4 w-4" /> Erneut versuchen
++            </button>
++          </div>
++        </div>
++      )}
++
++      {/* Playback health overlay */}
++      {showHealthOverlay && (
++        <div className="absolute left-3 top-16 z-40 rounded-lg bg-black/65 backdrop-blur-sm px-3 py-2 text-[11px] text-white/90 pointer-events-none">
++          <div className="font-semibold text-amber-300 mb-1">Playback Health</div>
++          <div>Buffer: {playbackHealth.bufferAheadSec}s</div>
++          <div>Bitrate: {playbackHealth.bitrateKbps > 0 ? `${playbackHealth.bitrateKbps} kbps` : "—"}</div>
++          <div>Dropped: {playbackHealth.droppedFrames}</div>
++          <div>Mode: {fastZapMode ? "Fast Zap" : "Stabil"}</div>
+         </div>
+       )}
+ 
+@@ -920,6 +1048,33 @@ export default function VideoPlayer({
+             <button onClick={cycleAspectRatio} className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/20 h-10">
+               {aspectRatio}
+             </button>
++            <button
++              onClick={(e) => { e.stopPropagation(); setFastZapMode((prev) => !prev); }}
++              className={clsx(
++                "rounded-lg px-2.5 py-1.5 text-xs h-10",
++                fastZapMode ? "bg-emerald-500/25 text-emerald-300 hover:bg-emerald-500/35" : "bg-white/10 text-white/80 hover:bg-white/20"
++              )}
++              title="Fast-Zap Modus"
++            >
++              ZAP
++            </button>
++            <button
++              onClick={(e) => { e.stopPropagation(); setShowHealthOverlay((prev) => !prev); }}
++              className={clsx(
++                "rounded-lg px-2.5 py-1.5 text-xs h-10",
++                showHealthOverlay ? "bg-amber-500/25 text-amber-300 hover:bg-amber-500/35" : "bg-white/10 text-white/80 hover:bg-white/20"
++              )}
++              title="Playback Health"
++            >
++              <HiSignal className="h-4 w-4" />
++            </button>
++            <button
++              onClick={(e) => { e.stopPropagation(); quickFixStream(); }}
++              className="rounded-lg bg-white/10 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/20 h-10"
++              title="Stream reparieren"
++            >
++              <HiWrenchScrewdriver className="h-4 w-4" />
++            </button>
+           </div>
+         </div>
+ 
