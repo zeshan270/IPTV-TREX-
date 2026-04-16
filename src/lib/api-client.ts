@@ -315,16 +315,22 @@ export async function fetchSeriesInfo(
   return fetchJson(url);
 }
 
+const CACHE_TTL_EPG = 60 * 1000; // 60 seconds — EPG doesn't change often
+
 export async function fetchEpg(
   creds: XtreamCredentials,
   streamId: number
 ): Promise<EpgProgram[]> {
+  const cacheKey = buildCacheKey(creds, "epg", String(streamId));
+  const cached = getCached<EpgProgram[]>(cacheKey);
+  if (cached) return cached;
+
   const url = buildApiUrl(creds, "get_short_epg") + `&stream_id=${streamId}`;
   const data = await fetchJson<{
     epg_listings?: Record<string, unknown>[];
   }>(url);
   if (!data.epg_listings) return [];
-  return data.epg_listings.map((e) => ({
+  const result = data.epg_listings.map((e) => ({
     id: String(e.id ?? ""),
     channelId: String(e.channel_id ?? ""),
     title: e.title ? safeAtob(String(e.title)) : "",
@@ -334,6 +340,8 @@ export async function fetchEpg(
     lang: String(e.lang ?? ""),
     hasArchive: Boolean(e.has_archive),
   }));
+  setCache(cacheKey, result, CACHE_TTL_EPG);
+  return result;
 }
 
 function safeAtob(str: string): string {

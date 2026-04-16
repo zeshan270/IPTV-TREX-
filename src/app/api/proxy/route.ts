@@ -102,7 +102,9 @@ export async function GET(request: NextRequest) {
           "Content-Type": "application/vnd.apple.mpegurl",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Cache-Control": "no-cache",
+          // Short CDN cache for manifests — reduces redundant requests
+          // while ensuring live playlists stay fresh
+          "Cache-Control": "public, s-maxage=1, stale-while-revalidate=2",
         },
       });
     }
@@ -119,6 +121,12 @@ export async function GET(request: NextRequest) {
     if (acceptRanges) headers.set("Accept-Ranges", acceptRanges);
     const contentRange = response.headers.get("content-range");
     if (contentRange) headers.set("Content-Range", contentRange);
+    // Cache segments at Vercel CDN edge — they're immutable once created.
+    // This eliminates serverless cold-start latency for re-requested segments (VOD seeking).
+    const isSegment = url.includes(".ts") || url.includes(".aac") || url.includes(".mp4");
+    if (isSegment) {
+      headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
+    }
 
     return new NextResponse(response.body, {
       status: response.status, // Preserve 206 Partial Content for range requests

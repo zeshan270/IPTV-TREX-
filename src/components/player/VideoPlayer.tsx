@@ -236,6 +236,14 @@ export default function VideoPlayer({
       try { sessionStorage.setItem(`iptv-proxy-${getServerKey(src)}`, needs ? "1" : "0"); } catch {}
     }
 
+    // Detect HTTP→HTTPS mixed content: browser will ALWAYS block these,
+    // so skip the direct attempt entirely and go straight to proxy.
+    function srcRequiresProxy(): boolean {
+      if (typeof window === "undefined") return false;
+      if (window.location.protocol !== "https:") return false;
+      try { return new URL(src).protocol === "http:"; } catch { return false; }
+    }
+
     // HLS.js config (live vs VOD presets)
     const hlsConfig = isVodContent ? {
       maxBufferLength: 30, maxMaxBufferLength: 120,
@@ -244,12 +252,25 @@ export default function VideoPlayer({
       fragLoadingTimeOut: 30000, manifestLoadingTimeOut: 20000, levelLoadingTimeOut: 20000,
       fragLoadingMaxRetry: 6, manifestLoadingMaxRetry: 4, levelLoadingMaxRetry: 4, maxLoadingDelay: 4,
     } : {
-      maxBufferLength: 8, maxMaxBufferLength: 20,
-      maxBufferSize: 20 * 1000 * 1000, maxBufferHole: 0.3,
-      lowLatencyMode: true, startFragPrefetch: true, enableWorker: true,
-      fragLoadingTimeOut: 10000, manifestLoadingTimeOut: 8000, levelLoadingTimeOut: 8000,
-      fragLoadingMaxRetry: 3, manifestLoadingMaxRetry: 3, levelLoadingMaxRetry: 3,
-      maxLoadingDelay: 2, liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 6,
+      // Live: aggressive low-latency for fast channel switching
+      maxBufferLength: 4,            // Start playing after 4s buffer (was 8)
+      maxMaxBufferLength: 15,
+      maxBufferSize: 15 * 1000 * 1000,
+      maxBufferHole: 0.5,            // More tolerant of gaps
+      lowLatencyMode: true,
+      startFragPrefetch: true,
+      enableWorker: true,
+      fragLoadingTimeOut: 15000,      // More time for proxy overhead (was 10s)
+      manifestLoadingTimeOut: 12000,  // More time for proxy overhead (was 8s)
+      levelLoadingTimeOut: 12000,
+      fragLoadingMaxRetry: 3,
+      manifestLoadingMaxRetry: 3,
+      levelLoadingMaxRetry: 3,
+      maxLoadingDelay: 1,            // Less waiting between retries (was 2)
+      liveSyncDurationCount: 2,      // Play closer to live edge (was 3)
+      liveMaxLatencyDurationCount: 5,
+      backBufferLength: 0,           // Free old segments immediately
+      initialLiveManifestSize: 1,    // Start with just 1 fragment
     };
 
     // Called when HLS manifest is parsed and ready to play
@@ -418,26 +439,32 @@ export default function VideoPlayer({
     const startTimer = setTimeout(() => {
       if (!alive) return;
 
+      const needsProxy = srcRequiresProxy() || serverNeedsProxy() === true;
+
       if (isHLS || isVodContent) {
         const nativeHLS = video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
         // TIER 1: Native HLS (Safari/iOS) — direct URL, zero proxy overhead
         if (nativeHLS && !Hls.isSupported()) {
           setLoadingStatus("Lade Stream...");
-          video.src = src;
-          video.onerror = () => {
-            video.onerror = null;
+          if (needsProxy) {
             video.src = proxyUrl(src);
-            if (autoPlay) safePlay(video);
-          };
+          } else {
+            video.src = src;
+            video.onerror = () => {
+              video.onerror = null;
+              video.src = proxyUrl(src);
+              if (autoPlay) safePlay(video);
+            };
+          }
           if (autoPlay) safePlay(video);
           return;
         }
 
-        // TIER 2/3: HLS.js — try direct first, proxy on CORS failure
+        // TIER 2/3: HLS.js — skip direct attempt when proxy is required
         if (Hls.isSupported()) {
-          if (serverNeedsProxy() === true) {
-            startHlsProxy(video); // Cached: this server needs proxy
+          if (needsProxy) {
+            startHlsProxy(video); // HTTP→HTTPS or cached: go straight to proxy
           } else {
             startHlsDirect(video); // Try direct first (fastest path)
           }
@@ -449,14 +476,19 @@ export default function VideoPlayer({
         video.src = proxyUrl(src);
         if (autoPlay) safePlay(video);
       } else {
-        // Non-HLS content — try direct first, proxy on error
+        // Non-HLS content — try direct, proxy on error
         setLoadingStatus("Lade Stream...");
-        video.src = src;
-        video.onerror = () => {
-          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+        if (needsProxy) {
           video.src = proxyUrl(src);
-          if (autoPlay) safePlay(video);
-        };
+          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+        } else {
+          video.src = src;
+          video.onerror = () => {
+            video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+            video.src = proxyUrl(src);
+            if (autoPlay) safePlay(video);
+          };
+        }
         if (autoPlay) safePlay(video);
       }
     }, startDelay);
