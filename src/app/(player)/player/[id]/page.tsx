@@ -36,6 +36,10 @@ export default function PlayerPage() {
   const [channelNumberInput, setChannelNumberInput] = useState("");
   const channelNumberTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ref for the entire player page container - used as fullscreen target
+  // so that channel list, EPG, etc. remain visible inside fullscreen
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+
   // Channel name for EPG display
   const [currentChannelName, setCurrentChannelName] = useState("");
 
@@ -280,7 +284,7 @@ export default function PlayerPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div ref={pageContainerRef} className="fixed inset-0 z-50 bg-black">
       <VideoPlayer
         src={streamUrl}
         title={displayName}
@@ -290,6 +294,7 @@ export default function PlayerPage() {
         onChannelPrev={type === "live" ? handlePrev : undefined}
         onBack={handleBack}
         onPositionChange={handlePositionChange}
+        fullscreenContainerRef={pageContainerRef}
       />
 
       {/* Channel number overlay */}
@@ -313,13 +318,14 @@ export default function PlayerPage() {
         />
       )}
 
-      {/* Channel list toggle */}
-      {type === "live" && playlist.length > 0 && (
+      {/* Channel list toggle - always visible as a small tab on the right edge */}
+      {type === "live" && playlist.length > 0 && !showChannelList && (
         <button
-          onClick={() => setShowChannelList(!showChannelList)}
-          className="absolute top-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+          onClick={() => setShowChannelList(true)}
+          className="absolute top-1/2 -translate-y-1/2 right-0 z-20 flex h-14 w-8 items-center justify-center rounded-l-xl bg-black/60 text-white/80 backdrop-blur-sm hover:bg-black/80 hover:w-10 transition-all"
+          title="Kanalliste"
         >
-          <HiListBullet className="h-6 w-6" />
+          <HiListBullet className="h-5 w-5" />
         </button>
       )}
 

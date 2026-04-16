@@ -50,6 +50,8 @@ interface VideoPlayerProps {
   onChannelNext?: () => void;
   onChannelPrev?: () => void;
   onBack?: () => void;
+  /** External container ref to use for fullscreen (so siblings like channel list stay visible) */
+  fullscreenContainerRef?: React.RefObject<HTMLDivElement | null>;
   onPositionChange?: (position: number, duration: number) => void;
   autoPlay?: boolean;
 }
@@ -78,6 +80,7 @@ export default function VideoPlayer({
   onBack,
   onPositionChange,
   autoPlay = true,
+  fullscreenContainerRef,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -476,6 +479,11 @@ export default function VideoPlayer({
     };
   }, [applyVolume]);
 
+  // Use external fullscreen container if provided (so channel list etc. stay visible in fullscreen)
+  const getFullscreenTarget = useCallback(() => {
+    return fullscreenContainerRef?.current || containerRef.current;
+  }, [fullscreenContainerRef]);
+
   // Fullscreen change + orientation lock
   useEffect(() => {
     const onFsChange = () => {
@@ -505,13 +513,14 @@ export default function VideoPlayer({
       /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
       (window.innerWidth <= 768 && "ontouchstart" in window)
     );
-    if (isMobile && containerRef.current && !document.fullscreenElement) {
+    if (isMobile && !document.fullscreenElement) {
       const timer = setTimeout(() => {
-        containerRef.current?.requestFullscreen?.().catch(() => {});
+        const target = getFullscreenTarget();
+        target?.requestFullscreen?.().catch(() => {});
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [src]);
+  }, [src, getFullscreenTarget]);
 
   // Auto-hide controls - toggle on single tap (TiviMate-style)
   const resetHideTimer = useCallback(() => {
@@ -562,14 +571,14 @@ export default function VideoPlayer({
   const togglePlayPause = () => { const v = videoRef.current; if (v) v.paused ? safePlay(v) : v.pause(); };
 
   const toggleFullscreen = () => {
-    const container = containerRef.current;
-    if (!container) return;
+    const target = getFullscreenTarget();
+    if (!target) return;
     const doc = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void };
-    const el = container as HTMLElement & { webkitRequestFullscreen?: () => void };
+    const el = target as HTMLElement & { webkitRequestFullscreen?: () => void };
     if (document.fullscreenElement || doc.webkitFullscreenElement) {
       (document.exitFullscreen || doc.webkitExitFullscreen)?.call(document);
     } else {
-      (container.requestFullscreen || el.webkitRequestFullscreen)?.call(container);
+      (target.requestFullscreen || el.webkitRequestFullscreen)?.call(target);
     }
   };
 
