@@ -89,6 +89,7 @@ export default function VideoPlayer({
   const positionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialSeekDoneRef = useRef(false);
   const retryCountRef = useRef(0);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeIndicatorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -563,15 +564,32 @@ export default function VideoPlayer({
     const onPause = () => setIsPlaying(false);
     const onTimeUpdate = () => { setCurrentTime(video.currentTime); };
     const onDurationChange = () => setDuration(video.duration);
-    const onWaiting = () => { setIsBuffering(true); setLoadingStatus("Buffering..."); };
+    // Auto-recovery: if buffering persists >12s, restart HLS load
+    const clearStallTimer = () => {
+      if (stallTimerRef.current) { clearTimeout(stallTimerRef.current); stallTimerRef.current = null; }
+    };
+    const onWaiting = () => {
+      setIsBuffering(true); setLoadingStatus("Buffering...");
+      clearStallTimer();
+      stallTimerRef.current = setTimeout(() => {
+        if (video.paused || video.readyState >= 3) return;
+        // Stream stalled — try to recover
+        if (hlsRef.current) {
+          setLoadingStatus("Verbindung wird wiederhergestellt...");
+          hlsRef.current.startLoad();
+        } else if (video.src) {
+          video.currentTime = video.currentTime; // Force re-buffer
+        }
+      }, 12000);
+    };
     const onCanPlay = () => {
-      setIsBuffering(false); setLoadingStatus("");
+      setIsBuffering(false); setLoadingStatus(""); clearStallTimer();
       programmaticVolumeRef.current = true;
       video.volume = userVolumeRef.current;
       video.muted = false;
       programmaticVolumeRef.current = false;
     };
-    const onPlaying = () => { setIsBuffering(false); setLoadingStatus(""); };
+    const onPlaying = () => { setIsBuffering(false); setLoadingStatus(""); clearStallTimer(); };
     const onError = () => {};
     const onVolumeChange = () => {
       const vol = video.volume;
@@ -596,6 +614,7 @@ export default function VideoPlayer({
     video.addEventListener("error", onError);
     video.addEventListener("volumechange", onVolumeChange);
     return () => {
+      clearStallTimer();
       video.removeEventListener("play", onPlay); video.removeEventListener("pause", onPause);
       video.removeEventListener("timeupdate", onTimeUpdate); video.removeEventListener("durationchange", onDurationChange);
       video.removeEventListener("waiting", onWaiting); video.removeEventListener("canplay", onCanPlay);
