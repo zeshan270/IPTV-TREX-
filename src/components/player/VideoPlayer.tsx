@@ -100,6 +100,7 @@ export default function VideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(() => loadPref("aspectRatio", "16:9"));
   const [audioTracks, setAudioTracks] = useState<{ id: number; name: string; lang: string }[]>([]);
   const [subtitleTracks, setSubtitleTracks] = useState<{ id: number; name: string; lang: string }[]>([]);
@@ -217,163 +218,96 @@ export default function VideoPlayer({
     // Restore volume ref in case load() triggered volumechange events
     userVolumeRef.current = savedVolume;
 
-    // Small delay only for live channel switches so the server closes the
-    // previous session before we open a new one (prevents immediate 456).
-    const startDelay = isVodContent ? 0 : 150;
-    const startTimer = setTimeout(() => {
-      if (!alive) return;
-      if (isHLS || isVodContent) {
-        // ALWAYS use HLS.js for both live HLS and VOD content
-        // Xtream servers often serve HLS even for .mp4 URLs (redirect to m3u8)
-        // HLS.js handles this correctly, plus handles CORS via proxy
-        tryHlsProxy(video);
-      } else {
-        setLoadingStatus("Lade Stream...");
-        video.src = proxyUrl(src);
-        video.onerror = () => {
-          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
-          video.src = src;
-          if (autoPlay) safePlay(video);
-        };
-        if (autoPlay) safePlay(video);
-      }
-    }, startDelay);
+    // --- Proxy cache per server hostname (sessionStorage) ---
+    // Once we learn a server needs (or doesn't need) proxy, cache it
+    // so subsequent channel switches skip the CORS probe.
+    function getServerKey(url: string): string {
+      try { return new URL(url).hostname; } catch { return "unknown"; }
+    }
+    function serverNeedsProxy(): boolean | null {
+      try {
+        const v = sessionStorage.getItem(`iptv-proxy-${getServerKey(src)}`);
+        if (v === "1") return true;
+        if (v === "0") return false;
+      } catch {}
+      return null;
+    }
+    function cacheProxyResult(needs: boolean) {
+      try { sessionStorage.setItem(`iptv-proxy-${getServerKey(src)}`, needs ? "1" : "0"); } catch {}
+    }
 
-    function tryHlsProxy(vid: HTMLVideoElement) {
-      if (!Hls.isSupported()) {
-        setLoadingStatus("Lade Stream (Safari)...");
-        vid.src = proxyUrl(src);
-        if (autoPlay) safePlay(vid);
+    // HLS.js config (live vs VOD presets)
+    const hlsConfig = isVodContent ? {
+      maxBufferLength: 30, maxMaxBufferLength: 120,
+      maxBufferSize: 60 * 1000 * 1000, maxBufferHole: 0.5,
+      lowLatencyMode: false, startFragPrefetch: false, enableWorker: true,
+      fragLoadingTimeOut: 30000, manifestLoadingTimeOut: 20000, levelLoadingTimeOut: 20000,
+      fragLoadingMaxRetry: 6, manifestLoadingMaxRetry: 4, levelLoadingMaxRetry: 4, maxLoadingDelay: 4,
+    } : {
+      maxBufferLength: 8, maxMaxBufferLength: 20,
+      maxBufferSize: 20 * 1000 * 1000, maxBufferHole: 0.3,
+      lowLatencyMode: true, startFragPrefetch: true, enableWorker: true,
+      fragLoadingTimeOut: 10000, manifestLoadingTimeOut: 8000, levelLoadingTimeOut: 8000,
+      fragLoadingMaxRetry: 3, manifestLoadingMaxRetry: 3, levelLoadingMaxRetry: 3,
+      maxLoadingDelay: 2, liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 6,
+    };
+
+    // Called when HLS manifest is parsed and ready to play
+    function onHlsReady(hls: Hls, vid: HTMLVideoElement) {
+      setIsBuffering(false);
+      setLoadingStatus("");
+      const savedVol = userVolumeRef.current;
+      vid.volume = savedVol;
+      vid.muted = false;
+      if (autoPlay) {
+        safePlay(vid).then(() => { vid.volume = userVolumeRef.current; vid.muted = false; });
+      }
+      setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
+      setSubtitleTracks(hls.subtitleTracks.map((t, i) => ({ id: i, name: t.name || `Subtitle ${i + 1}`, lang: t.lang || "" })));
+    }
+
+    // Shared error handler for HLS.js (both direct and proxy modes)
+    function handleHlsError(
+      hls: Hls, vid: HTMLVideoElement, data: any,
+      isDirectMode: boolean, mediaRecovery: { count: number },
+    ) {
+      const httpStatus = data.response?.code;
+      const responseText = typeof data.response?.data === "string" ? data.response.data : "";
+      const is456 = httpStatus === 456 || responseText.includes("STREAM_BLOCKED_456");
+      const is458 = httpStatus === 458 || responseText.includes("MAX_CONNECTIONS_458");
+
+      if (is456 || is458) {
+        destroyHls();
+        if (retryCountRef.current < 3) {
+          retryCountRef.current++;
+          setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
+          setTimeout(() => {
+            if (alive) { isDirectMode ? startHlsDirect(vid) : startHlsProxy(vid); }
+          }, 3000);
+        } else {
+          setError(is456
+            ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
+            : "Maximale Verbindungen erreicht. Bitte warte kurz und versuche es erneut."
+          );
+          setIsBuffering(false);
+        }
         return;
       }
 
-      setLoadingStatus("Lade Stream (HLS)...");
-      const proxiedSrc = proxyUrl(src);
-
-      const hls = new Hls(isVodContent ? {
-        // VOD settings — larger buffers, longer timeouts
-        maxBufferLength: 30,
-        maxMaxBufferLength: 120,
-        maxBufferSize: 60 * 1000 * 1000,
-        maxBufferHole: 0.5,
-        lowLatencyMode: false,
-        startFragPrefetch: false,
-        enableWorker: true,
-        fragLoadingTimeOut: 30000,
-        manifestLoadingTimeOut: 20000,
-        levelLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 6,
-        manifestLoadingMaxRetry: 4,
-        levelLoadingMaxRetry: 4,
-        maxLoadingDelay: 4,
-      } : {
-        // Live settings — low latency, small buffer, fast timeouts
-        maxBufferLength: 8,
-        maxMaxBufferLength: 20,
-        maxBufferSize: 20 * 1000 * 1000,
-        maxBufferHole: 0.3,
-        lowLatencyMode: true,
-        startFragPrefetch: true,
-        enableWorker: true,
-        fragLoadingTimeOut: 10000,
-        manifestLoadingTimeOut: 8000,
-        levelLoadingTimeOut: 8000,
-        fragLoadingMaxRetry: 3,
-        manifestLoadingMaxRetry: 3,
-        levelLoadingMaxRetry: 3,
-        maxLoadingDelay: 2,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 6,
-      });
-
-      hls.loadSource(proxiedSrc);
-      hls.attachMedia(vid);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsBuffering(false);
-        setLoadingStatus("");
-        const savedVol = userVolumeRef.current;
-        vid.volume = savedVol;
-        vid.muted = false;
-
-        if (autoPlay) {
-          safePlay(vid).then(() => {
-            vid.volume = userVolumeRef.current;
-            vid.muted = false;
-          });
-        }
-
-        setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
-        setSubtitleTracks(hls.subtitleTracks.map((t, i) => ({ id: i, name: t.name || `Subtitle ${i + 1}`, lang: t.lang || "" })));
-      });
-
-      hls.on(Hls.Events.FRAG_LOADED, () => { setIsBuffering(false); setLoadingStatus(""); });
-
-      let mediaRecoveryAttempts = 0;
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        const httpStatus = data.response?.code;
-        const responseText = typeof data.response?.data === "string" ? data.response.data : "";
-        const is456 = httpStatus === 456 || responseText.includes("STREAM_BLOCKED_456");
-        const is458 = httpStatus === 458 || responseText.includes("MAX_CONNECTIONS_458");
-
-        if (is456 || is458) {
-          if (!alive) return;
-          destroyHls();
-          // Max 3 retries for connection errors — each waits 3s for the server
-          // to fully close the previous session before reconnecting.
-          if (retryCountRef.current < 3) {
-            retryCountRef.current++;
-            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
-            setTimeout(() => { if (alive) tryHlsProxy(vid); }, 3000);
-          } else {
-            setError(is456
-              ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
-              : "Maximale Verbindungen erreicht. Bitte warte kurz und versuche es erneut."
-            );
-            setIsBuffering(false);
-          }
-          return;
-        }
-
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              if (!alive) return;
-              if (retryCountRef.current < 4) {
-                retryCountRef.current++;
-                setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/4)...`);
-                hls.startLoad();
-              } else {
-                setLoadingStatus("Versuche alternatives Format...");
-                destroyHls();
-                if (isVodContent) {
-                  vid.src = src;
-                  vid.onerror = () => {
-                    vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
-                    vid.src = proxyUrl(src);
-                    if (autoPlay) safePlay(vid);
-                  };
-                } else {
-                  vid.src = proxyUrl(src);
-                  vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
-                }
-                if (autoPlay) safePlay(vid);
-              }
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              mediaRecoveryAttempts++;
-              if (mediaRecoveryAttempts <= 2) {
-                setLoadingStatus("Medien-Fehler wird behoben...");
-                hls.recoverMediaError();
-              } else {
-                setLoadingStatus("Versuche alternatives Codec...");
-                hls.swapAudioCodec();
-                hls.recoverMediaError();
-                mediaRecoveryAttempts = 0;
-              }
-              break;
-            default:
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            if (isDirectMode) {
+              // Direct mode failed mid-stream → switch to proxy
+              cacheProxyResult(true);
+              destroyHls();
+              startHlsProxy(vid);
+            } else if (retryCountRef.current < 4) {
+              retryCountRef.current++;
+              setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/4)...`);
+              hls.startLoad();
+            } else {
+              setLoadingStatus("Versuche alternatives Format...");
               destroyHls();
               if (isVodContent) {
                 vid.src = src;
@@ -384,26 +318,157 @@ export default function VideoPlayer({
                 };
               } else {
                 vid.src = proxyUrl(src);
+                vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
               }
               if (autoPlay) safePlay(vid);
-              break;
-          }
-        } else if (!data.fatal && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          setLoadingStatus("Verbindung wird wiederhergestellt...");
+            }
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            mediaRecovery.count++;
+            if (mediaRecovery.count <= 2) {
+              setLoadingStatus("Medien-Fehler wird behoben...");
+              hls.recoverMediaError();
+            } else {
+              setLoadingStatus("Versuche alternatives Codec...");
+              hls.swapAudioCodec();
+              hls.recoverMediaError();
+              mediaRecovery.count = 0;
+            }
+            break;
+          default:
+            destroyHls();
+            if (isVodContent) {
+              vid.src = src;
+              vid.onerror = () => {
+                vid.onerror = () => { vid.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+                vid.src = proxyUrl(src);
+                if (autoPlay) safePlay(vid);
+              };
+            } else {
+              vid.src = proxyUrl(src);
+            }
+            if (autoPlay) safePlay(vid);
+            break;
         }
+      } else if (!data.fatal && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        setLoadingStatus("Verbindung wird wiederhergestellt...");
+      }
+    }
+
+    // TIER 2: HLS.js with direct URL (no proxy) — fastest for Chrome/Firefox
+    function startHlsDirect(vid: HTMLVideoElement) {
+      if (!alive) return;
+      destroyHls();
+      setLoadingStatus("Lade Stream...");
+
+      const hls = new Hls(hlsConfig as any);
+      hls.loadSource(src); // Direct URL — no proxy overhead
+      hls.attachMedia(vid);
+
+      let manifestLoaded = false;
+      const mediaRecovery = { count: 0 };
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        manifestLoaded = true;
+        cacheProxyResult(false); // Server works without proxy — remember it
+        onHlsReady(hls, vid);
+      });
+
+      hls.on(Hls.Events.FRAG_LOADED, () => { setIsBuffering(false); setLoadingStatus(""); });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!alive) return;
+        // Before manifest loads: network error = almost certainly CORS → proxy immediately
+        if (!manifestLoaded && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          cacheProxyResult(true);
+          destroyHls();
+          startHlsProxy(vid);
+          return;
+        }
+        handleHlsError(hls, vid, data, true, mediaRecovery);
       });
 
       hlsRef.current = hls;
     }
 
+    // TIER 3: HLS.js with proxy — fallback when CORS blocks direct access
+    function startHlsProxy(vid: HTMLVideoElement) {
+      if (!alive) return;
+      destroyHls();
+      setLoadingStatus("Lade Stream...");
+
+      const hls = new Hls(hlsConfig as any);
+      hls.loadSource(proxyUrl(src));
+      hls.attachMedia(vid);
+
+      const mediaRecovery = { count: 0 };
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { onHlsReady(hls, vid); });
+      hls.on(Hls.Events.FRAG_LOADED, () => { setIsBuffering(false); setLoadingStatus(""); });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!alive) return;
+        handleHlsError(hls, vid, data, false, mediaRecovery);
+      });
+
+      hlsRef.current = hls;
+    }
+
+    // Minimal delay for live (server needs time to close previous session)
+    const startDelay = isVodContent ? 0 : 50;
+    const startTimer = setTimeout(() => {
+      if (!alive) return;
+
+      if (isHLS || isVodContent) {
+        const nativeHLS = video.canPlayType("application/vnd.apple.mpegurl") !== "";
+
+        // TIER 1: Native HLS (Safari/iOS) — direct URL, zero proxy overhead
+        if (nativeHLS && !Hls.isSupported()) {
+          setLoadingStatus("Lade Stream...");
+          video.src = src;
+          video.onerror = () => {
+            video.onerror = null;
+            video.src = proxyUrl(src);
+            if (autoPlay) safePlay(video);
+          };
+          if (autoPlay) safePlay(video);
+          return;
+        }
+
+        // TIER 2/3: HLS.js — try direct first, proxy on CORS failure
+        if (Hls.isSupported()) {
+          if (serverNeedsProxy() === true) {
+            startHlsProxy(video); // Cached: this server needs proxy
+          } else {
+            startHlsDirect(video); // Try direct first (fastest path)
+          }
+          return;
+        }
+
+        // No HLS support — proxy fallback
+        setLoadingStatus("Lade Stream...");
+        video.src = proxyUrl(src);
+        if (autoPlay) safePlay(video);
+      } else {
+        // Non-HLS content — try direct first, proxy on error
+        setLoadingStatus("Lade Stream...");
+        video.src = src;
+        video.onerror = () => {
+          video.onerror = () => { video.onerror = null; setError("Stream konnte nicht geladen werden."); setIsBuffering(false); };
+          video.src = proxyUrl(src);
+          if (autoPlay) safePlay(video);
+        };
+        if (autoPlay) safePlay(video);
+      }
+    }, startDelay);
+
     return () => {
-      alive = false; // Cancel all pending retry callbacks for this src
+      alive = false;
       clearTimeout(startTimer);
       destroyHls();
       if (video) video.onerror = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, autoPlay, isHLS, isVodContent, destroyHls, safePlay]);
+  }, [src, autoPlay, isHLS, isVodContent, destroyHls, safePlay, retryKey]);
 
   // Seek to initial position
   useEffect(() => {
@@ -695,13 +760,9 @@ export default function VideoPlayer({
   const retry = () => {
     setError(null);
     retryCountRef.current = 0;
-    destroyHls();
-    const video = videoRef.current;
-    if (video) {
-      video.removeAttribute("src");
-      video.load();
-      setTimeout(() => { video.src = proxyUrl(src); video.load(); safePlay(video); }, 300);
-    }
+    // Clear proxy cache so we re-probe direct vs proxy
+    try { sessionStorage.removeItem(`iptv-proxy-${new URL(src).hostname}`); } catch {}
+    setRetryKey((k) => k + 1); // Triggers the init useEffect
   };
 
 
