@@ -32,10 +32,21 @@ export async function GET(request: NextRequest) {
       reqHeaders["Range"] = rangeHeader;
     }
 
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: reqHeaders,
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: controller.signal, headers: reqHeaders });
+    } catch (fetchErr) {
+      // If HTTPS connection failed, auto-downgrade to HTTP
+      // (stream URLs are auto-upgraded to HTTPS for direct browser access,
+      // but when they fall back to proxy, the server might not support HTTPS)
+      const parsed = new URL(url);
+      if (parsed.protocol === "https:") {
+        parsed.protocol = "http:";
+        response = await fetch(parsed.toString(), { signal: controller.signal, headers: reqHeaders });
+      } else {
+        throw fetchErr;
+      }
+    }
     clearTimeout(timeout);
 
     if (!response.ok && response.status !== 206) {

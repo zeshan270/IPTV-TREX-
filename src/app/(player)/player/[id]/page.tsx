@@ -49,7 +49,12 @@ export default function PlayerPage() {
   // Build stream URL and restore position
   useEffect(() => {
     if (urlParam) {
-      setStreamUrl(decodeURIComponent(urlParam).trim());
+      let decoded = decodeURIComponent(urlParam).trim();
+      // Auto-upgrade HTTP→HTTPS to enable direct streaming (no proxy)
+      if (window.location.protocol === "https:" && decoded.startsWith("http://")) {
+        decoded = decoded.replace(/^http:\/\//i, "https://");
+      }
+      setStreamUrl(decoded);
     } else if (isXtream && creds) {
       const streamType = type === "live" ? "live" : type === "movie" ? "movie" : "series";
       const url = buildStreamUrl(creds, Number(id), streamType);

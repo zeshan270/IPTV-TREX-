@@ -357,15 +357,26 @@ function safeAtob(str: string): string {
   }
 }
 
+/**
+ * Auto-upgrade HTTP URLs to HTTPS when the page is on HTTPS.
+ * This enables direct browser-to-server streaming (bypassing the proxy),
+ * which uses the user's real IP instead of the datacenter IP.
+ * Most Xtream servers support HTTPS on port 443 alongside HTTP.
+ */
+function upgradeHttps(url: string): string {
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    return url.replace(/^http:\/\//i, "https://");
+  }
+  return url;
+}
+
 export function buildStreamUrl(
   creds: XtreamCredentials,
   streamId: number,
   type: "live" | "movie" | "series",
   extension?: string
 ): string {
-  const base = buildBaseUrl(creds);
-  // DO NOT encodeURIComponent here - username/password are URL path segments
-  // and the full URL gets encoded again when passed as a query param
+  const base = upgradeHttps(buildBaseUrl(creds));
   const u = creds.username.trim();
   const p = creds.password.trim();
   if (type === "live") {
@@ -552,7 +563,7 @@ function parseM3UContent(content: string): ParsedM3UResult {
       name,
       logo: logoMatch?.[1] ?? "",
       group: groupMatch?.[1] ?? "Uncategorized",
-      url: urlLine,
+      url: upgradeHttps(urlLine),
       tvgId: tvgIdMatch?.[1] ?? "",
       tvgName: tvgNameMatch?.[1] ?? name,
       isLive: !isVod && !isSeries,
