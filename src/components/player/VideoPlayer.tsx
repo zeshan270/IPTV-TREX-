@@ -138,10 +138,10 @@ export default function VideoPlayer({
   }>({ startX: 0, startY: 0, startVol: 1, startBright: 1, startTime: 0, side: null, direction: null, swiping: false, lastUpdate: 0 });
 
   const isHLS = src.includes(".m3u8") || src.includes("m3u8");
-  // Use contentType prop as source of truth - URL regex is unreliable for Xtream URLs
-  const isVodContent = contentType === "movie" || contentType === "series" || /\.(mp4|mkv|avi|mov|wmv|flv|webm|ts)(\?|$)/i.test(src);
-  // isLive is definitively false for movies/series - never hide seek bar for VOD
-  const isLive = isVodContent ? false : (contentType === "live" || !duration || duration === Infinity);
+  // contentType is the source of truth — never classify live .ts streams as VOD.
+  // Xtream live URLs end with .ts but are live streams, not files.
+  const isVodContent = contentType === "movie" || contentType === "series";
+  const isLive = contentType === "live" || (!isVodContent && (duration === undefined || duration === 0 || duration === Infinity));
 
   // Track pending play() promise to prevent AbortError
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -217,9 +217,9 @@ export default function VideoPlayer({
     // Restore volume ref in case load() triggered volumechange events
     userVolumeRef.current = savedVolume;
 
-    // Delay to ensure previous connection is fully released by server
-    // Xtream servers need time to drop the previous stream slot (456 error otherwise)
-    // 500ms gives more headroom for servers with slow session cleanup
+    // Small delay only for live channel switches so the server closes the
+    // previous session before we open a new one (prevents immediate 456).
+    const startDelay = isVodContent ? 0 : 150;
     const startTimer = setTimeout(() => {
       if (!alive) return;
       if (isHLS || isVodContent) {
@@ -237,7 +237,7 @@ export default function VideoPlayer({
         };
         if (autoPlay) safePlay(video);
       }
-    }, 500);
+    }, startDelay);
 
     function tryHlsProxy(vid: HTMLVideoElement) {
       if (!Hls.isSupported()) {
@@ -250,22 +250,40 @@ export default function VideoPlayer({
       setLoadingStatus("Lade Stream (HLS)...");
       const proxiedSrc = proxyUrl(src);
 
-      const hls = new Hls({
-        maxBufferLength: isVodContent ? 30 : 10,
-        maxMaxBufferLength: isVodContent ? 120 : 30,
-        maxBufferSize: isVodContent ? 100 * 1000 * 1000 : 30 * 1000 * 1000,
+      const hls = new Hls(isVodContent ? {
+        // VOD settings — larger buffers, longer timeouts
+        maxBufferLength: 30,
+        maxMaxBufferLength: 120,
+        maxBufferSize: 60 * 1000 * 1000,
         maxBufferHole: 0.5,
-        lowLatencyMode: !isVodContent,
-        startFragPrefetch: !isVodContent, // Don't prefetch VOD to avoid 456
+        lowLatencyMode: false,
+        startFragPrefetch: false,
         enableWorker: true,
-        fragLoadingTimeOut: isVodContent ? 30000 : 15000,
-        manifestLoadingTimeOut: isVodContent ? 20000 : 10000,
-        levelLoadingTimeOut: isVodContent ? 20000 : 10000,
-        fragLoadingMaxRetry: isVodContent ? 6 : 4,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
         manifestLoadingMaxRetry: 4,
         levelLoadingMaxRetry: 4,
-        // Limit concurrent requests for VOD to avoid 456 max-connection errors
-        maxLoadingDelay: isVodContent ? 4 : 1,
+        maxLoadingDelay: 4,
+      } : {
+        // Live settings — low latency, small buffer, fast timeouts
+        maxBufferLength: 8,
+        maxMaxBufferLength: 20,
+        maxBufferSize: 20 * 1000 * 1000,
+        maxBufferHole: 0.3,
+        lowLatencyMode: true,
+        startFragPrefetch: true,
+        enableWorker: true,
+        fragLoadingTimeOut: 10000,
+        manifestLoadingTimeOut: 8000,
+        levelLoadingTimeOut: 8000,
+        fragLoadingMaxRetry: 3,
+        manifestLoadingMaxRetry: 3,
+        levelLoadingMaxRetry: 3,
+        maxLoadingDelay: 2,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
       });
 
       hls.loadSource(proxiedSrc);
@@ -302,11 +320,12 @@ export default function VideoPlayer({
         if (is456 || is458) {
           if (!alive) return;
           destroyHls();
-          if (retryCountRef.current < 6) {
+          // Max 3 retries for connection errors — each waits 3s for the server
+          // to fully close the previous session before reconnecting.
+          if (retryCountRef.current < 3) {
             retryCountRef.current++;
-            const waitTime = Math.min(retryCountRef.current * 2000, 10000);
-            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/6)...`);
-            setTimeout(() => { if (alive) tryHlsProxy(vid); }, waitTime);
+            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
+            setTimeout(() => { if (alive) tryHlsProxy(vid); }, 3000);
           } else {
             setError(is456
               ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
