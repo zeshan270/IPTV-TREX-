@@ -194,6 +194,10 @@ export default function VideoPlayer({
     const video = videoRef.current;
     if (!video || !src) return;
 
+    // alive flag: set to false on cleanup so ALL pending retry timeouts
+    // from this effect invocation become no-ops when src changes.
+    let alive = true;
+
     setError(null);
     setIsBuffering(true);
     setLoadingStatus("Verbinde...");
@@ -215,7 +219,9 @@ export default function VideoPlayer({
 
     // Delay to ensure previous connection is fully released by server
     // Xtream servers need time to drop the previous stream slot (456 error otherwise)
+    // 500ms gives more headroom for servers with slow session cleanup
     const startTimer = setTimeout(() => {
+      if (!alive) return;
       if (isHLS || isVodContent) {
         // ALWAYS use HLS.js for both live HLS and VOD content
         // Xtream servers often serve HLS even for .mp4 URLs (redirect to m3u8)
@@ -231,7 +237,7 @@ export default function VideoPlayer({
         };
         if (autoPlay) safePlay(video);
       }
-    }, 200);
+    }, 500);
 
     function tryHlsProxy(vid: HTMLVideoElement) {
       if (!Hls.isSupported()) {
@@ -294,12 +300,13 @@ export default function VideoPlayer({
         const is458 = httpStatus === 458 || responseText.includes("MAX_CONNECTIONS_458");
 
         if (is456 || is458) {
+          if (!alive) return;
           destroyHls();
           if (retryCountRef.current < 6) {
             retryCountRef.current++;
-            const waitTime = Math.min(retryCountRef.current * 1500, 8000);
+            const waitTime = Math.min(retryCountRef.current * 2000, 10000);
             setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/6)...`);
-            setTimeout(() => tryHlsProxy(vid), waitTime);
+            setTimeout(() => { if (alive) tryHlsProxy(vid); }, waitTime);
           } else {
             setError(is456
               ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
@@ -313,6 +320,7 @@ export default function VideoPlayer({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              if (!alive) return;
               if (retryCountRef.current < 4) {
                 retryCountRef.current++;
                 setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/4)...`);
@@ -370,6 +378,7 @@ export default function VideoPlayer({
     }
 
     return () => {
+      alive = false; // Cancel all pending retry callbacks for this src
       clearTimeout(startTimer);
       destroyHls();
       if (video) video.onerror = null;
