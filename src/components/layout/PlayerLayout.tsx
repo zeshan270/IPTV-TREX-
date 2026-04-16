@@ -75,9 +75,17 @@ export default function PlayerLayout({
   useEffect(() => {
     window.history.pushState({ trex: "guard" }, "");
 
-    const handlePopState = () => {
+    const handlePopState = (e: PopStateEvent) => {
       const p = pathnameRef.current;
       if (p.startsWith("/player/")) return;
+
+      // Orphaned player guard — player navigated away but left a guard entry.
+      // Re-push our own guard so the user stays on the current page.
+      const trex = (e.state as { trex?: string } | null)?.trex;
+      if (trex === "player" || trex === "player-guard") {
+        window.history.pushState({ trex: "guard" }, "");
+        return;
+      }
 
       if (p === "/") {
         const now = Date.now();

@@ -232,13 +232,13 @@ export default function PlayerPage() {
     showChannelListRef.current = showChannelList;
   }, [showChannelList]);
 
-  // Push TWO dummy history entries for robust back-trapping
+  // Push TWO dummy history entries for robust back-trapping.
+  // Using the back target as the URL so that navigating back to a guard
+  // entry renders /live (not /player/xxx), preventing an infinite loop.
   useEffect(() => {
-    // Record length before our guards so we can detect if there's a real
-    // previous page (client-side nav from /live) vs a fresh load (no history).
-    const lengthBeforeGuards = window.history.length;
-    window.history.pushState({ trex: "player-guard" }, "");
-    window.history.pushState({ trex: "player" }, "");
+    const target = backTargetRef.current;
+    window.history.pushState({ trex: "player-guard" }, "", target);
+    window.history.pushState({ trex: "player" }, "", target);
 
     const handlePopState = () => {
       if (showChannelListRef.current) {
@@ -253,16 +253,10 @@ export default function PlayerPage() {
         window.history.pushState({ trex: "player" }, "");
         return;
       }
-      window.removeEventListener("popstate", handlePopState);
-      if (lengthBeforeGuards > 2) {
-        // Real previous page exists (e.g. /live) — go back naturally:
-        // from player-guard1 position, go(-2) skips player-guard1 + /player page
-        // and lands on /live without leaving orphaned entries.
-        window.history.go(-2);
-      } else {
-        // Direct/fresh load — no real previous page, use router.
-        router.push(backTargetRef.current);
-      }
+      // Navigate to the category page. The layout's popstate handler will
+      // detect the orphaned player-guard entry on the next back press and
+      // skip it by re-pushing its own guard — so the user stays on /live.
+      router.push(backTargetRef.current);
     };
 
     window.addEventListener("popstate", handlePopState);
