@@ -147,23 +147,25 @@ export default function PlayerPage() {
 
   const switchToChannelNumber = useCallback(
     (num: number) => {
-      // Look up channel by number from favorites
       const fav = favorites.find((f) => f.channelNumber === num);
       if (fav) {
-        // Find matching channel in playlist
         const channel = playlist.find((c) => c.id === fav.id);
         if (channel) {
           setChannel(channel);
-          router.replace(
-            `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}`
+          setStreamUrl(channel.url.trim());
+          window.history.replaceState(null, "",
+            `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}&name=${encodeURIComponent(channel.name)}`
           );
+          if (isXtream && creds) {
+            fetchEpg(creds, Number(channel.id)).then(setEpgPrograms).catch(() => setEpgPrograms([]));
+          }
+          addRecent({ id: channel.id, name: channel.name, logo: channel.logo, streamType: channel.streamType });
           return;
         }
-        // If not in playlist, navigate directly
         router.replace(`/player/${fav.id}?type=live`);
       }
     },
-    [favorites, playlist, setChannel, router]
+    [favorites, playlist, setChannel, router, isXtream, creds, addRecent]
   );
 
   // Save position callback
@@ -226,54 +228,59 @@ export default function PlayerPage() {
     showChannelListRef.current = showChannelList;
   }, [showChannelList]);
 
-  // Push ONE dummy history entry on mount, handle popstate with refs (no deps = no re-push)
+  // Push TWO dummy history entries for robust back-trapping
   useEffect(() => {
-    window.history.pushState({ iptv: "player" }, "");
+    window.history.pushState({ trex: "player-guard" }, "");
+    window.history.pushState({ trex: "player" }, "");
 
     const handlePopState = () => {
-      // If channel list open → close it, re-push state
       if (showChannelListRef.current) {
         setShowChannelList(false);
-        window.history.pushState({ iptv: "player" }, "");
+        window.history.pushState({ trex: "player" }, "");
         return;
       }
-      // If fullscreen → exit fullscreen, re-push state
       if (document.fullscreenElement) {
         document.exitFullscreen();
-        window.history.pushState({ iptv: "player" }, "");
+        window.history.pushState({ trex: "player" }, "");
         return;
       }
-      // Navigate back to the category page
       router.push(backTargetRef.current);
+      setTimeout(() => window.history.pushState({ trex: "guard" }, ""), 100);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // INTENTIONALLY empty - refs handle state, only mount once
+  }, []);
 
   const handleBack = () => {
     router.push(backTargetRef.current);
   };
 
+  // Channel select - IN-PLACE update to preserve fullscreen (TiviMate-style)
   const handleChannelSelect = (channel: typeof playlist[0]) => {
     setChannel(channel);
     setShowChannelList(false);
-    router.replace(
-      `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}`
+    setStreamUrl(channel.url.trim());
+    window.history.replaceState(null, "",
+      `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}&name=${encodeURIComponent(channel.name)}`
     );
+    if (isXtream && creds) {
+      fetchEpg(creds, Number(channel.id)).then(setEpgPrograms).catch(() => setEpgPrograms([]));
+    }
+    addRecent({ id: channel.id, name: channel.name, logo: channel.logo, streamType: channel.streamType });
   };
 
   if (!streamUrl) {
     return (
       <div className="flex h-full items-center justify-center bg-black">
-        <p className="text-gray-500 text-sm">No stream URL provided</p>
+        <p className="text-gray-500 text-sm">Kein Stream gefunden</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-full w-full bg-black" style={{ minHeight: "100dvh" }}>
+    <div className="fixed inset-0 z-50 bg-black">
       <VideoPlayer
         src={streamUrl}
         title={displayName}

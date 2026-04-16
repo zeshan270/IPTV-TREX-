@@ -265,26 +265,15 @@ export default function VideoPlayer({
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsBuffering(false);
         setLoadingStatus("");
-        // Restore user volume after HLS re-attaches media
         const savedVol = userVolumeRef.current;
         vid.volume = savedVol;
         vid.muted = false;
 
-        // AGGRESSIVE volume restore: run every 200ms for 3 seconds after stream load
-        // This catches ALL edge cases where the browser resets volume
-        let volFixAttempts = 0;
-        const volFixInterval = setInterval(() => {
-          volFixAttempts++;
-          const targetVol = userVolumeRef.current;
-          if (vid.volume !== targetVol || vid.muted) {
-            vid.volume = targetVol;
-            vid.muted = false;
-          }
-          if (volFixAttempts >= 15) clearInterval(volFixInterval); // 15 * 200ms = 3s
-        }, 200);
-
         if (autoPlay) {
-          safePlay(vid);
+          safePlay(vid).then(() => {
+            vid.volume = userVolumeRef.current;
+            vid.muted = false;
+          });
         }
 
         setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
@@ -293,21 +282,20 @@ export default function VideoPlayer({
 
       hls.on(Hls.Events.FRAG_LOADED, () => { setIsBuffering(false); setLoadingStatus(""); });
 
+      let mediaRecoveryAttempts = 0;
+
       hls.on(Hls.Events.ERROR, (_event, data) => {
         const httpStatus = data.response?.code;
-        // Also check response text for proxy-forwarded IPTV error codes
         const responseText = typeof data.response?.data === "string" ? data.response.data : "";
         const is456 = httpStatus === 456 || responseText.includes("STREAM_BLOCKED_456");
         const is458 = httpStatus === 458 || responseText.includes("MAX_CONNECTIONS_458");
-        // 456 = stream blocked / max connections on some servers
-        // 458 = max connections reached
-        // Both should auto-retry after releasing the previous connection
+
         if (is456 || is458) {
           destroyHls();
-          if (retryCountRef.current < 5) {
+          if (retryCountRef.current < 6) {
             retryCountRef.current++;
-            const waitTime = retryCountRef.current * 2000; // 2s, 4s, 6s, 8s, 10s
-            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/5)...`);
+            const waitTime = Math.min(retryCountRef.current * 1500, 8000);
+            setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/6)...`);
             setTimeout(() => tryHlsProxy(vid), waitTime);
           } else {
             setError(is456
@@ -322,16 +310,13 @@ export default function VideoPlayer({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              if (retryCountRef.current < 3) {
+              if (retryCountRef.current < 4) {
                 retryCountRef.current++;
-                setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/3)...`);
+                setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/4)...`);
                 hls.startLoad();
               } else {
-                // HLS failed — fallback to direct video element
                 setLoadingStatus("Versuche alternatives Format...");
                 destroyHls();
-                // For VOD, try direct URL first (may bypass CORS for same-protocol)
-                // Then proxy as fallback
                 if (isVodContent) {
                   vid.src = src;
                   vid.onerror = () => {
@@ -347,7 +332,16 @@ export default function VideoPlayer({
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
+              mediaRecoveryAttempts++;
+              if (mediaRecoveryAttempts <= 2) {
+                setLoadingStatus("Medien-Fehler wird behoben...");
+                hls.recoverMediaError();
+              } else {
+                setLoadingStatus("Versuche alternatives Codec...");
+                hls.swapAudioCodec();
+                hls.recoverMediaError();
+                mediaRecoveryAttempts = 0;
+              }
               break;
             default:
               destroyHls();
@@ -364,6 +358,8 @@ export default function VideoPlayer({
               if (autoPlay) safePlay(vid);
               break;
           }
+        } else if (!data.fatal && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          setLoadingStatus("Verbindung wird wiederhergestellt...");
         }
       });
 
@@ -422,59 +418,44 @@ export default function VideoPlayer({
     setIsMuted(false);
   }, []);
 
+  const programmaticVolumeRef = useRef(false);
+
   // Video event listeners
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    // Volume fix counter - apply volume aggressively for first few seconds after play
-    let volumeFixCount = 0;
+
     const onPlay = () => {
       setIsPlaying(true); setIsBuffering(false); setLoadingStatus("");
-      volumeFixCount = 0;
-      applyVolume();
+      programmaticVolumeRef.current = true;
+      video.volume = userVolumeRef.current;
+      video.muted = false;
+      programmaticVolumeRef.current = false;
     };
     const onPause = () => setIsPlaying(false);
-    const onTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-      // Keep applying volume for first 5 timeupdate events after play
-      if (volumeFixCount < 5 && !video.paused) {
-        volumeFixCount++;
-        const vol = userVolumeRef.current;
-        if (video.volume !== vol || video.muted) {
-          video.volume = vol;
-          video.muted = false;
-        }
-      }
-    };
+    const onTimeUpdate = () => { setCurrentTime(video.currentTime); };
     const onDurationChange = () => setDuration(video.duration);
     const onWaiting = () => { setIsBuffering(true); setLoadingStatus("Buffering..."); };
-    const onCanPlay = () => { setIsBuffering(false); setLoadingStatus(""); applyVolume(); };
-    const onPlaying = () => {
+    const onCanPlay = () => {
       setIsBuffering(false); setLoadingStatus("");
-      volumeFixCount = 0;
-      applyVolume();
+      programmaticVolumeRef.current = true;
+      video.volume = userVolumeRef.current;
+      video.muted = false;
+      programmaticVolumeRef.current = false;
     };
+    const onPlaying = () => { setIsBuffering(false); setLoadingStatus(""); };
     const onError = () => {};
     const onVolumeChange = () => {
       const vol = video.volume;
       const muted = video.muted;
       setVolume(vol);
       setIsMuted(muted);
-      // Only persist if volume > 0 AND close to a reasonable user-set value
-      // Ignore browser resets (vol=1 when defaulting, vol=0 when muting)
-      // A real user change comes from slider/swipe which set userVolumeRef FIRST
-      if (vol > 0 && vol < 1) {
-        // Non-default value = definitely a user choice
+      if (!programmaticVolumeRef.current) {
         userVolumeRef.current = vol;
         savePref("volume", vol);
-      } else if (vol === 1 && userVolumeRef.current === 1) {
-        // User had it at max and it stayed at max - fine
-        savePref("volume", vol);
       }
-      // vol=0 or vol=1 when userVolumeRef differs → likely browser reset, ignore
     };
 
-    // Restore persisted volume
     applyVolume();
 
     video.addEventListener("play", onPlay);
@@ -511,15 +492,46 @@ export default function VideoPlayer({
       } catch {}
     };
     document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+    };
   }, []);
 
-  // Auto-hide controls
+  // Auto-fullscreen on mobile (Smarters/TiviMate-style)
+  useEffect(() => {
+    const isMobile = typeof window !== "undefined" && (
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (window.innerWidth <= 768 && "ontouchstart" in window)
+    );
+    if (isMobile && containerRef.current && !document.fullscreenElement) {
+      const timer = setTimeout(() => {
+        containerRef.current?.requestFullscreen?.().catch(() => {});
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [src]);
+
+  // Auto-hide controls - toggle on single tap (TiviMate-style)
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
+    setShowSettings(false);
+    setShowSleepMenu(false);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => { if (isPlaying) setShowControls(false); }, 3000);
+    hideTimerRef.current = setTimeout(() => { if (isPlaying) setShowControls(false); }, 4000);
   }, [isPlaying]);
+
+  const toggleControls = useCallback(() => {
+    if (showControls) {
+      setShowControls(false);
+      setShowSettings(false);
+      setShowSleepMenu(false);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    } else {
+      resetHideTimer();
+    }
+  }, [showControls, resetHideTimer]);
 
   useEffect(() => {
     resetHideTimer();
@@ -537,8 +549,8 @@ export default function VideoPlayer({
         case "m": e.preventDefault(); video.muted = !video.muted; break;
         case "arrowleft": e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 10); resetHideTimer(); break;
         case "arrowright": e.preventDefault(); video.currentTime = Math.min(duration, video.currentTime + 10); resetHideTimer(); break;
-        case "arrowup": e.preventDefault(); video.volume = Math.min(1, video.volume + 0.1); resetHideTimer(); break;
-        case "arrowdown": e.preventDefault(); video.volume = Math.max(0, video.volume - 0.1); resetHideTimer(); break;
+        case "arrowup": { e.preventDefault(); const nv = Math.min(1, video.volume + 0.1); video.volume = nv; userVolumeRef.current = nv; savePref("volume", nv); resetHideTimer(); break; }
+        case "arrowdown": { e.preventDefault(); const nv = Math.max(0, video.volume - 0.1); video.volume = nv; userVolumeRef.current = nv; savePref("volume", nv); resetHideTimer(); break; }
         case "p": e.preventDefault(); togglePiP(); break;
         case "escape": if (isFullscreen) document.exitFullscreen(); break;
       }
@@ -552,7 +564,13 @@ export default function VideoPlayer({
   const toggleFullscreen = () => {
     const container = containerRef.current;
     if (!container) return;
-    document.fullscreenElement ? document.exitFullscreen() : container.requestFullscreen();
+    const doc = document as Document & { webkitFullscreenElement?: Element; webkitExitFullscreen?: () => void };
+    const el = container as HTMLElement & { webkitRequestFullscreen?: () => void };
+    if (document.fullscreenElement || doc.webkitFullscreenElement) {
+      (document.exitFullscreen || doc.webkitExitFullscreen)?.call(document);
+    } else {
+      (container.requestFullscreen || el.webkitRequestFullscreen)?.call(container);
+    }
   };
 
   const toggleMute = () => {
@@ -759,22 +777,21 @@ export default function VideoPlayer({
     if (swipeIndicatorTimer.current) clearTimeout(swipeIndicatorTimer.current);
     swipeIndicatorTimer.current = setTimeout(() => setSwipeIndicator(null), 600);
 
-    // Double-tap detection (only if not swiping)
     if (!wasSwiping && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       const now = Date.now();
       const last = lastTapRef.current;
       if (now - last.time < 300 && Math.abs(touch.clientX - last.x) < 50) {
         handleDoubleTap(touch.clientX);
-        lastTapRef.current = { time: 0, x: 0 }; // reset to prevent triple-tap
+        lastTapRef.current = { time: 0, x: 0 };
       } else {
         lastTapRef.current = { time: now, x: touch.clientX };
-        resetHideTimer();
+        toggleControls();
       }
     } else if (!wasSwiping) {
-      resetHideTimer();
+      toggleControls();
     }
-  }, [resetHideTimer, handleDoubleTap]);
+  }, [toggleControls, handleDoubleTap]);
 
   // Sleep timer logic
   const startSleepTimer = useCallback((minutes: number) => {
@@ -808,7 +825,11 @@ export default function VideoPlayer({
       ref={containerRef}
       className="relative w-full h-full bg-black select-none group"
       onMouseMove={resetHideTimer}
-      onClick={() => { if (!showSettings) resetHideTimer(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === "VIDEO") {
+          toggleControls();
+        }
+      }}
       onDoubleClick={(e) => { handleDoubleTap(e.clientX); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

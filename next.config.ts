@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true,
   },
+  turbopack: {
+    root: import.meta.dirname,
+  },
 };
 
 export default nextConfig;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRef, useCallback, useState, useEffect } from "react";
 import clsx from "clsx";
 import {
@@ -33,12 +33,14 @@ export default function PlayerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const macAddress = useAuthStore((s) => s.macAddress);
   const credentials = useAuthStore((s) => s.credentials);
   const playlistName = useAuthStore((s) => s.playlistName);
   const { fontSize, remoteControlMode } = useSettingsStore();
   const navRef = useRef<HTMLUListElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [exitToast, setExitToast] = useState(false);
 
   const isLarge = fontSize === "large" || fontSize === "extra-large" || remoteControlMode;
 
@@ -61,6 +63,50 @@ export default function PlayerLayout({
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  // ===== GLOBAL BACK NAVIGATION GUARD (TiviMate-style) =====
+  const lastBackRef = useRef(0);
+  const pathnameRef = useRef(pathname);
+  const exitToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
+
+  useEffect(() => {
+    window.history.pushState({ trex: "guard" }, "");
+
+    const handlePopState = () => {
+      const p = pathnameRef.current;
+      if (p.startsWith("/player/")) return;
+
+      if (p === "/") {
+        const now = Date.now();
+        if (now - lastBackRef.current < 2000) {
+          window.history.back();
+          return;
+        }
+        lastBackRef.current = now;
+        setExitToast(true);
+        if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+        exitToastTimerRef.current = setTimeout(() => setExitToast(false), 2000);
+        window.history.pushState({ trex: "guard" }, "");
+        return;
+      }
+
+      const parentMap: Record<string, string> = {
+        "/live": "/", "/movies": "/", "/series": "/",
+        "/search": "/", "/favorites": "/", "/settings": "/",
+      };
+      router.push(parentMap[p] || "/");
+      window.history.pushState({ trex: "guard" }, "");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNavKeyDown = useCallback(
@@ -230,6 +276,15 @@ export default function PlayerLayout({
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">{children}</main>
+
+      {/* Double-back exit toast */}
+      {exitToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="rounded-xl bg-[#181820] border border-[#2a2a38] px-6 py-3 shadow-2xl">
+            <p className="text-sm text-gray-300 whitespace-nowrap">Nochmal drücken zum Beenden</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
