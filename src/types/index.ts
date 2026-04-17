@@ -75,8 +75,77 @@ export interface EpgProgram {
   description: string;
   start: string;
   end: string;
+  startTimestamp: number;
+  endTimestamp: number;
   lang?: string;
   hasArchive: boolean;
+}
+
+// Full movie details from get_vod_info
+export interface MovieInfo {
+  streamId: number;
+  name: string;
+  originalName?: string;
+  cover: string;
+  coverBig?: string;
+  backdropPath: string[];
+  rating: string;
+  plot: string;
+  cast: string;
+  director: string;
+  genre: string;
+  releaseDate: string;
+  year?: string;
+  duration: string;
+  durationSecs?: number;
+  country?: string;
+  youtubeTrailer?: string;
+  tmdbId?: string;
+  containerExtension: string;
+  categoryId: string;
+}
+
+// Full series info with seasons/episodes from get_series_info
+export interface SeriesInfo {
+  name: string;
+  cover: string;
+  plot: string;
+  cast: string;
+  director: string;
+  genre: string;
+  releaseDate: string;
+  rating: string;
+  categoryId: string;
+  backdropPath: string[];
+  youtubeTrailer?: string;
+  seasons: SeasonInfo[];
+  episodes: Record<string, EpisodeInfo[]>;
+}
+
+export interface SeasonInfo {
+  seasonNumber: number;
+  name: string;
+  episodeCount: number;
+  cover?: string;
+  coverBig?: string;
+  overview?: string;
+  airDate?: string;
+}
+
+export interface EpisodeInfo {
+  id: string;
+  episodeNum: number;
+  title: string;
+  containerExtension: string;
+  season: number;
+  info: {
+    movieImage?: string;
+    plot?: string;
+    duration?: string;
+    durationSecs?: number;
+    releaseDate?: string;
+    rating?: string;
+  };
 }
 
 export interface Category {

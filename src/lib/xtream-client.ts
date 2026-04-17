@@ -325,18 +325,24 @@ export class XtreamClient {
       stream_id: String(streamId),
     });
     if (!data.epg_listings || !Array.isArray(data.epg_listings)) return [];
-    return data.epg_listings.map((e) => ({
-      id: e.id,
-      channelId: e.channel_id,
-      title: e.title ? Buffer.from(e.title, "base64").toString("utf-8") : "",
-      description: e.description
-        ? Buffer.from(e.description, "base64").toString("utf-8")
-        : "",
-      start: e.start,
-      end: e.end,
-      lang: e.lang,
-      hasArchive: e.has_archive === 1,
-    }));
+    return data.epg_listings.map((e) => {
+      const startTs = e.start ? new Date(e.start.replace(" ", "T") + "Z").getTime() : 0;
+      const endTs = e.end ? new Date(e.end.replace(" ", "T") + "Z").getTime() : 0;
+      return {
+        id: e.id,
+        channelId: e.channel_id,
+        title: e.title ? Buffer.from(e.title, "base64").toString("utf-8") : "",
+        description: e.description
+          ? Buffer.from(e.description, "base64").toString("utf-8")
+          : "",
+        start: e.start,
+        end: e.end,
+        startTimestamp: isNaN(startTs) ? 0 : startTs,
+        endTimestamp: isNaN(endTs) ? 0 : endTs,
+        lang: e.lang,
+        hasArchive: e.has_archive === 1,
+      };
+    });
   }
 
   async getFullEpg(streamId: number): Promise<EpgProgram[]> {
@@ -344,18 +350,24 @@ export class XtreamClient {
       stream_id: String(streamId),
     });
     if (!data.epg_listings || !Array.isArray(data.epg_listings)) return [];
-    return data.epg_listings.map((e) => ({
-      id: e.id,
-      channelId: e.channel_id,
-      title: e.title ? Buffer.from(e.title, "base64").toString("utf-8") : "",
-      description: e.description
-        ? Buffer.from(e.description, "base64").toString("utf-8")
-        : "",
-      start: e.start,
-      end: e.end,
-      lang: e.lang,
-      hasArchive: e.has_archive === 1,
-    }));
+    return data.epg_listings.map((e) => {
+      const startTs = e.start ? new Date(e.start.replace(" ", "T") + "Z").getTime() : 0;
+      const endTs = e.end ? new Date(e.end.replace(" ", "T") + "Z").getTime() : 0;
+      return {
+        id: e.id,
+        channelId: e.channel_id,
+        title: e.title ? Buffer.from(e.title, "base64").toString("utf-8") : "",
+        description: e.description
+          ? Buffer.from(e.description, "base64").toString("utf-8")
+          : "",
+        start: e.start,
+        end: e.end,
+        startTimestamp: isNaN(startTs) ? 0 : startTs,
+        endTimestamp: isNaN(endTs) ? 0 : endTs,
+        lang: e.lang,
+        hasArchive: e.has_archive === 1,
+      };
+    });
   }
 
   buildStreamUrl(

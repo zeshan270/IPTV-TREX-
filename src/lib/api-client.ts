@@ -7,6 +7,10 @@ import type {
   EpgProgram,
   XtreamAuthResponse,
   ParsedM3UResult,
+  MovieInfo,
+  SeriesInfo,
+  SeasonInfo,
+  EpisodeInfo,
 } from "@/types";
 import { extractCountryFromGroup, type CountryInfo } from "./countries";
 
@@ -317,6 +321,28 @@ export async function fetchSeriesInfo(
 
 const CACHE_TTL_EPG = 60 * 1000; // 60 seconds — EPG doesn't change often
 
+function parseEpgDate(dateStr: string): number {
+  if (!dateStr) return 0;
+  // Xtream EPG dates: "2024-01-15 20:00:00" (server timezone)
+  const d = new Date(dateStr.replace(" ", "T") + "Z");
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function mapEpgListings(listings: Record<string, unknown>[]): EpgProgram[] {
+  return listings.map((e) => ({
+    id: String(e.id ?? ""),
+    channelId: String(e.channel_id ?? ""),
+    title: e.title ? safeAtob(String(e.title)) : "",
+    description: e.description ? safeAtob(String(e.description)) : "",
+    start: String(e.start ?? ""),
+    end: String(e.end ?? ""),
+    startTimestamp: parseEpgDate(String(e.start ?? "")),
+    endTimestamp: parseEpgDate(String(e.end ?? "")),
+    lang: String(e.lang ?? ""),
+    hasArchive: Boolean(e.has_archive),
+  }));
+}
+
 export async function fetchEpg(
   creds: XtreamCredentials,
   streamId: number
@@ -330,17 +356,168 @@ export async function fetchEpg(
     epg_listings?: Record<string, unknown>[];
   }>(url);
   if (!data.epg_listings) return [];
-  const result = data.epg_listings.map((e) => ({
-    id: String(e.id ?? ""),
-    channelId: String(e.channel_id ?? ""),
-    title: e.title ? safeAtob(String(e.title)) : "",
-    description: e.description ? safeAtob(String(e.description)) : "",
-    start: String(e.start ?? ""),
-    end: String(e.end ?? ""),
-    lang: String(e.lang ?? ""),
-    hasArchive: Boolean(e.has_archive),
-  }));
+  const result = mapEpgListings(data.epg_listings);
   setCache(cacheKey, result, CACHE_TTL_EPG);
+  return result;
+}
+
+/**
+ * Fetch extended EPG for a channel (more programs for grid view).
+ * Uses higher limit for TV guide display.
+ */
+export async function fetchFullEpg(
+  creds: XtreamCredentials,
+  streamId: number,
+  limit: number = 30
+): Promise<EpgProgram[]> {
+  const cacheKey = buildCacheKey(creds, "full_epg", `${streamId}_${limit}`);
+  const cached = getCached<EpgProgram[]>(cacheKey);
+  if (cached) return cached;
+
+  const url = buildApiUrl(creds, "get_short_epg") + `&stream_id=${streamId}&limit=${limit}`;
+  const data = await fetchJson<{
+    epg_listings?: Record<string, unknown>[];
+  }>(url);
+  if (!data.epg_listings) return [];
+  const result = mapEpgListings(data.epg_listings);
+  setCache(cacheKey, result, 5 * 60 * 1000); // 5min cache for grid
+  return result;
+}
+
+/**
+ * Fetch full movie details (plot, cast, trailer, etc.)
+ */
+const CACHE_TTL_VOD_INFO = 30 * 60 * 1000; // 30 minutes
+
+export async function fetchVodInfo(
+  creds: XtreamCredentials,
+  vodId: number
+): Promise<MovieInfo> {
+  const cacheKey = buildCacheKey(creds, "vod_info", String(vodId));
+  const cached = getCached<MovieInfo>(cacheKey);
+  if (cached) return cached;
+
+  const url = buildApiUrl(creds, "get_vod_info") + `&vod_id=${vodId}`;
+  const data = await fetchJson<{
+    info?: Record<string, unknown>;
+    movie_data?: Record<string, unknown>;
+  }>(url);
+
+  const info = data.info || {};
+  const movieData = data.movie_data || {};
+  const backdropRaw = info.backdrop_path;
+  const backdropPath: string[] = Array.isArray(backdropRaw)
+    ? (backdropRaw as string[]).filter(Boolean)
+    : typeof backdropRaw === "string" && backdropRaw
+      ? [backdropRaw]
+      : [];
+
+  const result: MovieInfo = {
+    streamId: Number(movieData.stream_id ?? vodId),
+    name: String(info.name ?? movieData.name ?? ""),
+    originalName: info.o_name ? String(info.o_name) : undefined,
+    cover: String(info.movie_image ?? info.cover ?? ""),
+    coverBig: info.cover_big ? String(info.cover_big) : undefined,
+    backdropPath,
+    rating: String(info.rating ?? "0"),
+    plot: String(info.plot ?? info.description ?? ""),
+    cast: String(info.cast ?? ""),
+    director: String(info.director ?? ""),
+    genre: String(info.genre ?? ""),
+    releaseDate: String(info.release_date ?? info.releasedate ?? ""),
+    year: info.year ? String(info.year) : undefined,
+    duration: String(info.duration ?? ""),
+    durationSecs: info.duration_secs ? Number(info.duration_secs) : undefined,
+    country: info.country ? String(info.country) : undefined,
+    youtubeTrailer: info.youtube_trailer ? String(info.youtube_trailer) : undefined,
+    tmdbId: info.tmdb_id ? String(info.tmdb_id) : undefined,
+    containerExtension: String(movieData.container_extension ?? "mp4"),
+    categoryId: String(movieData.category_id ?? info.category_id ?? ""),
+  };
+
+  setCache(cacheKey, result, CACHE_TTL_VOD_INFO);
+  return result;
+}
+
+/**
+ * Fetch full series info with seasons and episodes.
+ */
+const CACHE_TTL_SERIES_INFO = 30 * 60 * 1000;
+
+export async function fetchFullSeriesInfo(
+  creds: XtreamCredentials,
+  seriesId: number
+): Promise<SeriesInfo> {
+  const cacheKey = buildCacheKey(creds, "series_info", String(seriesId));
+  const cached = getCached<SeriesInfo>(cacheKey);
+  if (cached) return cached;
+
+  const url = buildApiUrl(creds, "get_series_info") + `&series_id=${seriesId}`;
+  const data = await fetchJson<{
+    info?: Record<string, unknown>;
+    seasons?: Record<string, unknown>[];
+    episodes?: Record<string, Record<string, unknown>[]>;
+  }>(url);
+
+  const info = data.info || {};
+  const backdropRaw = info.backdrop_path;
+  const backdropPath: string[] = Array.isArray(backdropRaw)
+    ? (backdropRaw as string[]).filter(Boolean)
+    : typeof backdropRaw === "string" && backdropRaw
+      ? [backdropRaw]
+      : [];
+
+  const seasons: SeasonInfo[] = (data.seasons || []).map((s) => ({
+    seasonNumber: Number(s.season_number ?? 0),
+    name: String(s.name ?? `Staffel ${s.season_number}`),
+    episodeCount: Number(s.episode_count ?? 0),
+    cover: s.cover ? String(s.cover) : undefined,
+    coverBig: s.cover_big ? String(s.cover_big) : undefined,
+    overview: s.overview ? String(s.overview) : undefined,
+    airDate: s.air_date ? String(s.air_date) : undefined,
+  }));
+
+  const episodes: Record<string, EpisodeInfo[]> = {};
+  if (data.episodes) {
+    for (const [seasonNum, eps] of Object.entries(data.episodes)) {
+      episodes[seasonNum] = (eps as Record<string, unknown>[]).map((e) => {
+        const epInfo = (e.info || {}) as Record<string, unknown>;
+        return {
+          id: String(e.id ?? ""),
+          episodeNum: Number(e.episode_num ?? 0),
+          title: String(e.title ?? `Episode ${e.episode_num}`),
+          containerExtension: String(e.container_extension ?? "mp4"),
+          season: Number(e.season ?? seasonNum),
+          info: {
+            movieImage: epInfo.movie_image ? String(epInfo.movie_image) : undefined,
+            plot: epInfo.plot ? String(epInfo.plot) : undefined,
+            duration: epInfo.duration ? String(epInfo.duration) : undefined,
+            durationSecs: epInfo.duration_secs ? Number(epInfo.duration_secs) : undefined,
+            releaseDate: epInfo.release_date ? String(epInfo.release_date) : undefined,
+            rating: epInfo.rating ? String(epInfo.rating) : undefined,
+          },
+        };
+      });
+    }
+  }
+
+  const result: SeriesInfo = {
+    name: String(info.name ?? ""),
+    cover: String(info.cover ?? ""),
+    plot: String(info.plot ?? ""),
+    cast: String(info.cast ?? ""),
+    director: String(info.director ?? ""),
+    genre: String(info.genre ?? ""),
+    releaseDate: String(info.release_date ?? ""),
+    rating: String(info.rating ?? "0"),
+    categoryId: String(info.category_id ?? ""),
+    backdropPath,
+    youtubeTrailer: info.youtube_trailer ? String(info.youtube_trailer) : undefined,
+    seasons,
+    episodes,
+  };
+
+  setCache(cacheKey, result, CACHE_TTL_SERIES_INFO);
   return result;
 }
 

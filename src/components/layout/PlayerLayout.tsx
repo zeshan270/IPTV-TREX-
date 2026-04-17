@@ -14,6 +14,7 @@ import {
   HiCog6Tooth,
   HiBars3,
   HiXMark,
+  HiTableCells,
 } from "react-icons/hi2";
 import { useAuthStore, useSettingsStore } from "@/lib/store";
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/", label: "Home", icon: HiHome, isFavorite: false },
   { href: "/favorites", label: "Favoriten", icon: HiStar, isFavorite: true },
   { href: "/live", label: "Live TV", icon: HiTv, isFavorite: false },
+  { href: "/epg", label: "TV Guide", icon: HiTableCells, isFavorite: false },
   { href: "/movies", label: "Filme", icon: HiFilm, isFavorite: false },
   { href: "/series", label: "Serien", icon: HiRectangleStack, isFavorite: false },
   { href: "/search", label: "Suche", icon: HiMagnifyingGlass, isFavorite: false },
@@ -102,7 +104,7 @@ export default function PlayerLayout({
       }
 
       const parentMap: Record<string, string> = {
-        "/live": "/", "/movies": "/", "/series": "/",
+        "/live": "/", "/epg": "/", "/movies": "/", "/series": "/",
         "/search": "/", "/favorites": "/", "/settings": "/",
       };
       router.push(parentMap[p] || "/");

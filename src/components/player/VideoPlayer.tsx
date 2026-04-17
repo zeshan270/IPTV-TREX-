@@ -110,6 +110,8 @@ export default function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("Verbinde...");
   const [brightness, setBrightness] = useState(() => loadPref("brightness", 1));
+  const [qualityLevels, setQualityLevels] = useState<{ id: number; height: number; bitrate: number }[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState(-1); // -1 = auto
   const [swipeIndicator, setSwipeIndicator] = useState<{ type: "volume" | "brightness" | "seek"; value: number; label?: string } | null>(null);
 
   // Double-tap seek state
@@ -286,6 +288,13 @@ export default function VideoPlayer({
       }
       setAudioTracks(hls.audioTracks.map((t, i) => ({ id: i, name: t.name || `Track ${i + 1}`, lang: t.lang || "" })));
       setSubtitleTracks(hls.subtitleTracks.map((t, i) => ({ id: i, name: t.name || `Subtitle ${i + 1}`, lang: t.lang || "" })));
+      // Quality levels for selector
+      const levels = hls.levels
+        .map((l, i) => ({ id: i, height: l.height || 0, bitrate: l.bitrate || 0 }))
+        .filter((l) => l.height > 0)
+        .sort((a, b) => b.height - a.height);
+      setQualityLevels(levels);
+      setSelectedQuality(-1); // Auto
     }
 
     // Shared error handler for HLS.js (both direct and proxy modes)
@@ -774,6 +783,20 @@ export default function VideoPlayer({
 
   const handleAudioTrack = (id: number) => { if (hlsRef.current) { hlsRef.current.audioTrack = id; setSelectedAudio(id); } setShowSettings(false); };
   const handleSubtitleTrack = (id: number) => { if (hlsRef.current) { hlsRef.current.subtitleTrack = id; setSelectedSubtitle(id); } setShowSettings(false); };
+  const handleQualityChange = (levelId: number) => {
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = levelId; // -1 = auto
+      setSelectedQuality(levelId);
+    }
+    setShowSettings(false);
+  };
+  const qualityLabel = (height: number) => {
+    if (height >= 2160) return "4K";
+    if (height >= 1080) return "FHD";
+    if (height >= 720) return "HD";
+    if (height >= 480) return "SD";
+    return `${height}p`;
+  };
 
   // Playback speed
   const cyclePlaybackSpeed = useCallback(() => {
@@ -1197,7 +1220,7 @@ export default function VideoPlayer({
                   {isPiP ? <TbPictureInPictureOff className="h-5 w-5" /> : <TbPictureInPicture className="h-5 w-5" />}
                 </button>
               )}
-              {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
+              {(audioTracks.length > 1 || subtitleTracks.length > 0 || qualityLevels.length > 1) && (
                 <div className="relative">
                   <button onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
                     className="text-white/80 hover:text-white h-10 w-10 flex items-center justify-center">
@@ -1217,7 +1240,7 @@ export default function VideoPlayer({
                         </div>
                       )}
                       {subtitleTracks.length > 0 && (
-                        <div className="p-2.5">
+                        <div className="p-2.5 border-b border-white/10">
                           <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Untertitel</p>
                           <button onClick={() => handleSubtitleTrack(-1)}
                             className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
@@ -1228,6 +1251,24 @@ export default function VideoPlayer({
                               className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
                                 selectedSubtitle === t.id ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
                               )}>{t.name} {t.lang && `(${t.lang})`}</button>
+                          ))}
+                        </div>
+                      )}
+                      {qualityLevels.length > 1 && (
+                        <div className="p-2.5">
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Qualität</p>
+                          <button onClick={() => handleQualityChange(-1)}
+                            className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
+                              selectedQuality === -1 ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
+                            )}>Auto</button>
+                          {qualityLevels.map((l) => (
+                            <button key={l.id} onClick={() => handleQualityChange(l.id)}
+                              className={clsx("block w-full text-left text-sm py-1.5 px-2.5 rounded-lg",
+                                selectedQuality === l.id ? "text-amber-400 bg-amber-500/10" : "text-gray-300 hover:bg-white/5"
+                              )}>
+                              {l.height}p
+                              <span className="text-[10px] text-gray-500 ml-2">{qualityLabel(l.height)} · {(l.bitrate / 1000000).toFixed(1)} Mbps</span>
+                            </button>
                           ))}
                         </div>
                       )}

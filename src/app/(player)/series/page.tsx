@@ -207,7 +207,7 @@ export default function SeriesPage() {
                     categoryId: series.categoryId,
                   })
                 }
-                onClick={() => openDetail(series)}
+                onClick={() => router.push(`/series/${series.seriesId}`)}
               />
             ))}
           </div>

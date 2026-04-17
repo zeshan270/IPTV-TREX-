@@ -370,7 +370,7 @@ export default function MoviesPage() {
                     categoryId: movie.categoryId,
                   })
                 }
-                onClick={() => setSelectedMovie(movie)}
+                onClick={() => router.push(`/movies/${movie.streamId}`)}
               />
             ))}
           </div>
