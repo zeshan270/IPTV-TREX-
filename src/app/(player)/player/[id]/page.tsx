@@ -46,15 +46,19 @@ export default function PlayerPage() {
   const isXtream = credentials && "serverUrl" in credentials;
   const creds = credentials as { serverUrl: string; username: string; password: string } | null;
 
+  // Ensure all stream URLs use HTTPS when on HTTPS page (enables direct streaming)
+  const safeStreamUrl = useCallback((url: string): string => {
+    const trimmed = url.trim();
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && trimmed.startsWith("http://")) {
+      return trimmed.replace(/^http:\/\//i, "https://");
+    }
+    return trimmed;
+  }, []);
+
   // Build stream URL and restore position
   useEffect(() => {
     if (urlParam) {
-      let decoded = decodeURIComponent(urlParam).trim();
-      // Auto-upgrade HTTP→HTTPS to enable direct streaming (no proxy)
-      if (window.location.protocol === "https:" && decoded.startsWith("http://")) {
-        decoded = decoded.replace(/^http:\/\//i, "https://");
-      }
-      setStreamUrl(decoded);
+      setStreamUrl(safeStreamUrl(decodeURIComponent(urlParam)));
     } else if (isXtream && creds) {
       const streamType = type === "live" ? "live" : type === "movie" ? "movie" : "series";
       const url = buildStreamUrl(creds, Number(id), streamType);
@@ -161,7 +165,7 @@ export default function PlayerPage() {
         const channel = playlist.find((c) => c.id === fav.id);
         if (channel) {
           setChannel(channel);
-          setStreamUrl(channel.url.trim());
+          setStreamUrl(safeStreamUrl(channel.url));
           window.history.replaceState(null, "",
             `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}&name=${encodeURIComponent(channel.name)}`
           );
@@ -174,7 +178,7 @@ export default function PlayerPage() {
         router.replace(`/player/${fav.id}?type=live`);
       }
     },
-    [favorites, playlist, setChannel, router, isXtream, creds, addRecent]
+    [favorites, playlist, setChannel, router, isXtream, creds, addRecent, safeStreamUrl]
   );
 
   // Save position callback
@@ -201,7 +205,7 @@ export default function PlayerPage() {
     const ch = store.currentChannel;
     if (ch) {
       // Update stream URL directly - no router navigation = no fullscreen loss
-      setStreamUrl(ch.url.trim());
+      setStreamUrl(safeStreamUrl(ch.url));
       // Update URL bar silently without navigation
       window.history.replaceState(
         null, "",
@@ -216,7 +220,7 @@ export default function PlayerPage() {
       // Track in recents
       addRecent({ id: ch.id, name: ch.name, logo: ch.logo, streamType: ch.streamType });
     }
-  }, [next, prev, isXtream, creds, addRecent]);
+  }, [next, prev, isXtream, creds, addRecent, safeStreamUrl]);
 
   const handleNext = useCallback(() => switchChannelInPlace("next"), [switchChannelInPlace]);
   const handlePrev = useCallback(() => switchChannelInPlace("prev"), [switchChannelInPlace]);
@@ -277,7 +281,7 @@ export default function PlayerPage() {
   const handleChannelSelect = (channel: typeof playlist[0]) => {
     setChannel(channel);
     setShowChannelList(false);
-    setStreamUrl(channel.url.trim());
+    setStreamUrl(safeStreamUrl(channel.url));
     window.history.replaceState(null, "",
       `/player/${channel.id}?type=live&url=${encodeURIComponent(channel.url)}&name=${encodeURIComponent(channel.name)}`
     );

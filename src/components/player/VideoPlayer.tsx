@@ -253,25 +253,25 @@ export default function VideoPlayer({
       fragLoadingTimeOut: 30000, manifestLoadingTimeOut: 20000, levelLoadingTimeOut: 20000,
       fragLoadingMaxRetry: 6, manifestLoadingMaxRetry: 4, levelLoadingMaxRetry: 4, maxLoadingDelay: 4,
     } : {
-      // Live: aggressive low-latency for fast channel switching
-      maxBufferLength: 4,            // Start playing after 4s buffer (was 8)
-      maxMaxBufferLength: 15,
-      maxBufferSize: 15 * 1000 * 1000,
-      maxBufferHole: 0.5,            // More tolerant of gaps
-      lowLatencyMode: true,
-      startFragPrefetch: true,
+      // Live: stable playback optimized for Xtream IPTV servers
+      maxBufferLength: 10,            // 10s buffer — enough to absorb network jitter
+      maxMaxBufferLength: 30,         // Allow up to 30s buffer for stability
+      maxBufferSize: 30 * 1000 * 1000,
+      maxBufferHole: 0.5,             // Tolerant of small gaps
+      lowLatencyMode: false,          // CRITICAL: true causes issues with IPTV servers
+      startFragPrefetch: true,        // Start fetching next fragment early
       enableWorker: true,
-      fragLoadingTimeOut: 15000,      // More time for proxy overhead (was 10s)
-      manifestLoadingTimeOut: 12000,  // More time for proxy overhead (was 8s)
-      levelLoadingTimeOut: 12000,
-      fragLoadingMaxRetry: 3,
-      manifestLoadingMaxRetry: 3,
-      levelLoadingMaxRetry: 3,
-      maxLoadingDelay: 1,            // Less waiting between retries (was 2)
-      liveSyncDurationCount: 2,      // Play closer to live edge (was 3)
-      liveMaxLatencyDurationCount: 5,
-      backBufferLength: 0,           // Free old segments immediately
-      initialLiveManifestSize: 1,    // Start with just 1 fragment
+      fragLoadingTimeOut: 20000,      // 20s — generous for slow IPTV servers
+      manifestLoadingTimeOut: 15000,  // 15s — manifests can be slow
+      levelLoadingTimeOut: 15000,
+      fragLoadingMaxRetry: 5,         // More retries before giving up
+      manifestLoadingMaxRetry: 4,
+      levelLoadingMaxRetry: 4,
+      maxLoadingDelay: 1,             // Quick retry start
+      liveSyncDurationCount: 3,       // 3 segments behind live edge (stable)
+      liveMaxLatencyDurationCount: 8, // Allow drift up to 8 segments before resync
+      backBufferLength: 0,            // Free old segments immediately
+      initialLiveManifestSize: 1,     // Start with just 1 fragment for quick play
     };
 
     // Called when HLS manifest is parsed and ready to play
@@ -300,12 +300,14 @@ export default function VideoPlayer({
 
       if (is456 || is458) {
         destroyHls();
-        if (retryCountRef.current < 3) {
+        if (retryCountRef.current < 4) {
           retryCountRef.current++;
-          setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/3)...`);
+          // Escalating delay: 2s, 3s, 4s, 5s — server needs time to close the old session
+          const delay = 1000 + retryCountRef.current * 1000;
+          setLoadingStatus(`Verbindung wird freigegeben (${retryCountRef.current}/4)...`);
           setTimeout(() => {
             if (alive) { isDirectMode ? startHlsDirect(vid) : startHlsProxy(vid); }
-          }, 3000);
+          }, delay);
         } else {
           setError(is456
             ? "Stream blockiert (Fehler 456). Bitte prüfe dein Abo oder warte kurz."
@@ -324,10 +326,16 @@ export default function VideoPlayer({
               cacheProxyResult(true);
               destroyHls();
               startHlsProxy(vid);
-            } else if (retryCountRef.current < 4) {
+            } else if (retryCountRef.current < 5) {
               retryCountRef.current++;
-              setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/4)...`);
-              hls.startLoad();
+              // Escalating delay: 0s, 1s, 2s, 3s, 5s
+              const retryDelay = retryCountRef.current <= 1 ? 0 : (retryCountRef.current - 1) * 1000;
+              setLoadingStatus(`Neuer Versuch (${retryCountRef.current}/5)...`);
+              if (retryDelay > 0) {
+                setTimeout(() => { if (alive) hls.startLoad(); }, retryDelay);
+              } else {
+                hls.startLoad();
+              }
             } else {
               setLoadingStatus("Versuche alternatives Format...");
               destroyHls();
@@ -435,8 +443,10 @@ export default function VideoPlayer({
       hlsRef.current = hls;
     }
 
-    // Minimal delay for live (server needs time to close previous session)
-    const startDelay = isVodContent ? 0 : 50;
+    // CRITICAL delay for live: Xtream servers with max_connections=1 need
+    // time to register the old connection as closed before accepting a new one.
+    // Too short = 456 error. 300ms matches what TiviMate/Smarters do.
+    const startDelay = isVodContent ? 0 : 300;
     const startTimer = setTimeout(() => {
       if (!alive) return;
 
@@ -564,7 +574,7 @@ export default function VideoPlayer({
     const onPause = () => setIsPlaying(false);
     const onTimeUpdate = () => { setCurrentTime(video.currentTime); };
     const onDurationChange = () => setDuration(video.duration);
-    // Auto-recovery: if buffering persists >12s, restart HLS load
+    // Auto-recovery: if buffering persists >8s, restart HLS load
     const clearStallTimer = () => {
       if (stallTimerRef.current) { clearTimeout(stallTimerRef.current); stallTimerRef.current = null; }
     };
@@ -576,11 +586,16 @@ export default function VideoPlayer({
         // Stream stalled — try to recover
         if (hlsRef.current) {
           setLoadingStatus("Verbindung wird wiederhergestellt...");
+          // Jump to live edge first, then restart loading
           hlsRef.current.startLoad();
+          if (!video.duration || !isFinite(video.duration)) {
+            // For live: seek to live edge to skip stale buffer
+            hlsRef.current.liveSyncPosition && (video.currentTime = hlsRef.current.liveSyncPosition);
+          }
         } else if (video.src) {
           video.currentTime = video.currentTime; // Force re-buffer
         }
-      }, 12000);
+      }, 8000);
     };
     const onCanPlay = () => {
       setIsBuffering(false); setLoadingStatus(""); clearStallTimer();
