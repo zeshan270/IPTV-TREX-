@@ -8,7 +8,8 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { HiTv, HiStar, HiXMark, HiClock, HiPlay, HiArchiveBox, HiSignal } from "react-icons/hi2";
 import { useAuthStore, usePlayerStore, useFavoritesStore } from "@/lib/store";
-import { fetchLiveCategories, fetchLiveStreams, fetchFullEpg, buildStreamUrl } from "@/lib/api-client";
+import { useT } from "@/lib/i18n";
+import { fetchLiveCategories, fetchLiveStreams, fetchFullEpg, buildStreamUrl, buildCatchupUrl } from "@/lib/api-client";
 import type { Category, Channel, EpgProgram, XtreamCredentials } from "@/types";
 
 // ==================== Constants ====================
@@ -51,6 +52,7 @@ function SkeletonGrid() {
 function ProgramPopup({ program, channel, onClose, onWatch, onCatchup }: {
   program: EpgProgram; channel: Channel; onClose: () => void; onWatch: () => void; onCatchup: () => void;
 }) {
+  const t = useT();
   const now = Date.now();
   const isLive = program.startTimestamp <= now && program.endTimestamp > now;
   const isPast = program.endTimestamp <= now;
@@ -75,7 +77,7 @@ function ProgramPopup({ program, channel, onClose, onWatch, onCatchup }: {
                 </span>
               )}
             </div>
-            <h3 className="text-lg font-bold text-white leading-tight">{program.title || "Kein Titel"}</h3>
+            <h3 className="text-lg font-bold text-white leading-tight">{program.title || t("epg.noTitle")}</h3>
             <p className="text-sm text-gray-400 mt-1">{channel.name}</p>
           </div>
           <button onClick={onClose} className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
@@ -100,17 +102,17 @@ function ProgramPopup({ program, channel, onClose, onWatch, onCatchup }: {
         <div className="p-4 flex gap-2">
           {isLive && (
             <button onClick={onWatch} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all">
-              <HiPlay className="h-5 w-5" />Jetzt ansehen
+              <HiPlay className="h-5 w-5" />{t("epg.watchNow")}
             </button>
           )}
           {showCatchup && (
             <button onClick={onCatchup} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all">
-              <HiArchiveBox className="h-5 w-5" />Catchup
+              <HiArchiveBox className="h-5 w-5" />{t("epg.catchup")}
             </button>
           )}
           {!isLive && !showCatchup && (
             <button onClick={onWatch} className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#2a2a38] px-4 py-3 text-sm font-medium text-gray-300 hover:bg-white/10 transition-all">
-              <HiTv className="h-5 w-5" />Zum Kanal
+              <HiTv className="h-5 w-5" />{t("epg.goToChannel")}
             </button>
           )}
         </div>
@@ -122,6 +124,7 @@ function ProgramPopup({ program, channel, onClose, onWatch, onCatchup }: {
 // ==================== Main Component ====================
 export default function EpgPage() {
   const router = useRouter();
+  const t = useT();
   const credentials = useAuthStore((s) => s.credentials);
   const setChannel = usePlayerStore((s) => s.setChannel);
   const setPlaylist = usePlayerStore((s) => s.setPlaylist);
@@ -236,6 +239,13 @@ export default function EpgPage() {
     router.push(`/player/${ch.id}?type=live&url=${encodeURIComponent(ch.url)}&name=${encodeURIComponent(ch.name)}`);
   }, [router, setChannel, setPlaylist, channels]);
 
+  const goCatchup = useCallback((ch: Channel, program: EpgProgram) => {
+    if (!creds) return;
+    const catchupUrl = buildCatchupUrl(creds, Number(ch.id), program.startTimestamp, program.endTimestamp);
+    const name = `${ch.name} — ${program.title}`;
+    router.push(`/player/${ch.id}?type=movie&url=${encodeURIComponent(catchupUrl)}&name=${encodeURIComponent(name)}`);
+  }, [router, creds]);
+
   const visiblePrograms = useCallback((chId: string) => {
     const p = epgData[chId];
     return p ? p.filter((x) => x.endTimestamp > gridStart && x.startTimestamp < gridEnd) : [];
@@ -249,7 +259,7 @@ export default function EpgPage() {
       <div className="p-3 sm:p-4 border-b border-[#2a2a38] space-y-2">
         <div className="flex items-center gap-2 mb-2">
           <HiTv className="h-5 w-5 text-amber-400" />
-          <h1 className="text-lg font-bold text-white">TV Guide</h1>
+          <h1 className="text-lg font-bold text-white">{t("epg.title")}</h1>
           <span className="text-xs text-gray-500 ml-auto">{format(new Date(), "EEEE, d. MMM yyyy", { locale: de })}</span>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
@@ -258,7 +268,7 @@ export default function EpgPage() {
               "flex-shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all whitespace-nowrap",
               useFavs ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-black shadow-lg shadow-yellow-500/30" : "bg-[#181820] text-gray-300 border border-[#2a2a38] hover:border-amber-500/30"
             )}>
-              <HiStar className="h-4 w-4" />Favoriten
+              <HiStar className="h-4 w-4" />{t("live.favorites")}
             </button>
           )}
           {categories.map((cat) => (
@@ -278,7 +288,7 @@ export default function EpgPage() {
       ) : channels.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
           <HiSignal className="h-16 w-16 text-gray-600 mb-4" />
-          <p className="text-lg text-gray-400">{useFavs ? "Keine Favoriten vorhanden. Zuerst Kanäle als Favorit markieren." : "Keine Kanäle in dieser Kategorie."}</p>
+          <p className="text-lg text-gray-400">{useFavs ? t("epg.noFavorites") : t("epg.noChannels")}</p>
         </div>
       ) : (
         <div className="flex-1 relative overflow-hidden">
@@ -287,7 +297,7 @@ export default function EpgPage() {
               {/* Timeline header */}
               <div className="sticky top-0 z-30 flex" style={{ height: ROW_H }}>
                 <div className="sticky left-0 z-40 flex-shrink-0 bg-[#0d0d14] border-b border-r border-[#2a2a38] flex items-end pb-2 px-3" style={{ width: CHANNEL_COL }}>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider hidden sm:block">Kanäle</span>
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider hidden sm:block">{t("epg.channels")}</span>
                   <HiTv className="h-4 w-4 text-gray-500 sm:hidden" />
                 </div>
                 <div className="relative flex-1" style={{ width: gridW }}>
@@ -319,7 +329,7 @@ export default function EpgPage() {
                         <div className="absolute inset-0 flex items-center px-2"><div className="h-10 w-full rounded-md bg-[#1a1a26] animate-pulse" /></div>
                       )}
                       {hasEpg && progs.length === 0 && (
-                        <div className="absolute inset-0 flex items-center px-2"><span className="text-xs text-gray-600 italic">Keine EPG-Daten</span></div>
+                        <div className="absolute inset-0 flex items-center px-2"><span className="text-xs text-gray-600 italic">{t("epg.noEpg")}</span></div>
                       )}
                       {progs.map((pg) => {
                         const now = Date.now();
@@ -368,7 +378,7 @@ export default function EpgPage() {
           channel={selectedProgram.channel}
           onClose={() => setSelectedProgram(null)}
           onWatch={() => { setSelectedProgram(null); goChannel(selectedProgram.channel); }}
-          onCatchup={() => { setSelectedProgram(null); goChannel(selectedProgram.channel); }}
+          onCatchup={() => { setSelectedProgram(null); goCatchup(selectedProgram.channel, selectedProgram.program); }}
         />
       )}
     </div>

@@ -9,7 +9,25 @@ import {
   HiLanguage, HiSignal, HiListBullet,
 } from "react-icons/hi2";
 import { useAuthStore, useSettingsStore, useRecentStore } from "@/lib/store";
+import { useI18nStore, useT, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import PinDialog from "@/components/ui/PinDialog";
+
+function LanguageSelector() {
+  const { locale, setLocale } = useI18nStore();
+  const locales: Locale[] = ["de", "en", "tr"];
+  return (
+    <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden">
+      {locales.map((l) => (
+        <button key={l} onClick={() => setLocale(l)}
+          className={clsx("px-3 py-2 text-xs font-medium transition-colors",
+            locale === l ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
+          )}>
+          {LOCALE_NAMES[l]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -21,6 +39,7 @@ export default function SettingsPage() {
     setFontSize, setRemoteControlMode, setShowChannelNumbers,
   } = useSettingsStore();
   const clearRecent = useRecentStore((s) => s.clear);
+  const t = useT();
 
   const [showSetPin, setShowSetPin] = useState(false);
   const [showVerifyPin, setShowVerifyPin] = useState(false);
@@ -121,19 +140,19 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-full p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      <h1 className={clsx("font-bold text-white mb-6", isLarge ? "text-3xl" : "text-xl")}>⚙️ Einstellungen</h1>
+      <h1 className={clsx("font-bold text-white mb-6", isLarge ? "text-3xl" : "text-xl")}>⚙️ {t("settings.title")}</h1>
 
       {/* Playlist Management */}
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider", textSmall)}>
-            <HiListBullet className="h-4 w-4" /> Playlisten
+            <HiListBullet className="h-4 w-4" /> {t("settings.playlists")}
           </h2>
           <button
             onClick={() => { setShowAddPlaylist(true); setAddName(""); setAddUrl(""); setAddUser(""); setAddPass(""); setAddType("xtream"); }}
             tabIndex={0}
             className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm font-semibold hover:bg-green-500/30 focus-visible:ring-2 focus-visible:ring-green-400"
-          >+ Neue Playlist</button>
+          >+ {t("settings.newPlaylist")}</button>
         </div>
         <div className="rounded-xl glass-card divide-y divide-white/5">
           {/* Active playlist */}
@@ -167,14 +186,14 @@ export default function SettingsPage() {
                 }}
                 tabIndex={0}
                 className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400 flex-shrink-0"
-              >Bearbeiten</button>
+              >{t("settings.edit")}</button>
             )}
           </div>
 
           {/* Saved playlists */}
           {savedPlaylists.length > 0 && (
             <div className="p-4 space-y-2">
-              <p className={clsx("text-gray-400 mb-2", textSmall)}>Gespeicherte Playlisten ({savedPlaylists.length}):</p>
+              <p className={clsx("text-gray-400 mb-2", textSmall)}>{t("settings.savedPlaylists")} ({savedPlaylists.length}):</p>
               {savedPlaylists.map((pl) => {
                 const isActive = credentials && JSON.stringify(credentials) === JSON.stringify(pl.credentials);
                 return (
@@ -191,12 +210,12 @@ export default function SettingsPage() {
                     <div className="flex gap-2 flex-shrink-0">
                       <button onClick={() => startEditPlaylist(pl)} tabIndex={0}
                         className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400">
-                        Bearbeiten
+                        {t("settings.edit")}
                       </button>
                       {!isActive && (
                         <button onClick={() => { switchPlaylist(pl.id); window.location.reload(); }} tabIndex={0}
                           className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 focus-visible:ring-2 focus-visible:ring-amber-400">
-                          Aktivieren
+                          {t("settings.activate")}
                         </button>
                       )}
                       <button onClick={() => removePlaylist(pl.id)} tabIndex={0}
@@ -215,10 +234,10 @@ export default function SettingsPage() {
       {/* Display & Accessibility */}
       <section className="mb-6">
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiEye className="h-4 w-4" /> Anzeige & Bedienung
+          <HiEye className="h-4 w-4" /> {t("settings.display")}
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
-          <SettingRow icon={HiLanguage} title="Schriftgröße" desc="Für bessere Lesbarkeit vergrößern">
+          <SettingRow icon={HiLanguage} title={t("settings.fontSize")} desc={t("settings.fontSizeDesc")}>
             <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden">
               {(["normal", "large", "extra-large"] as const).map((size) => (
                 <button
@@ -231,18 +250,22 @@ export default function SettingsPage() {
                     fontSize === size ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
                   )}
                 >
-                  {size === "normal" ? "Normal" : size === "large" ? "Groß" : "Sehr Groß"}
+                  {size === "normal" ? t("settings.fontNormal") : size === "large" ? t("settings.fontLarge") : t("settings.fontXL")}
                 </button>
               ))}
             </div>
           </SettingRow>
 
-          <SettingRow icon={HiTv} title="Fernbedienungs-Modus" desc="Größere Buttons und einfachere Bedienung">
+          <SettingRow icon={HiTv} title={t("settings.remoteMode")} desc={t("settings.remoteModeDesc")}>
             <Toggle on={remoteControlMode} onToggle={() => setRemoteControlMode(!remoteControlMode)} />
           </SettingRow>
 
-          <SettingRow icon={HiSignal} title="Kanalnummern anzeigen" desc="Nummern auf Favoriten für schnellen Zugriff">
+          <SettingRow icon={HiSignal} title={t("settings.channelNumbers")} desc={t("settings.channelNumbersDesc")}>
             <Toggle on={showChannelNumbers} onToggle={() => setShowChannelNumbers(!showChannelNumbers)} />
+          </SettingRow>
+
+          <SettingRow icon={HiLanguage} title={t("settings.language")} desc={t("settings.languageDesc")}>
+            <LanguageSelector />
           </SettingRow>
         </div>
       </section>
@@ -250,10 +273,10 @@ export default function SettingsPage() {
       {/* Player Settings */}
       <section className="mb-6">
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiCog6Tooth className="h-4 w-4" /> Player
+          <HiCog6Tooth className="h-4 w-4" /> {t("settings.playerSection")}
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
-          <SettingRow icon={HiSignal} title="Buffer-Größe" desc="Höhere Werte = weniger Puffer-Unterbrechungen">
+          <SettingRow icon={HiSignal} title={t("settings.bufferSize")} desc={t("settings.bufferSizeDesc")}>
             <select value={bufferSize} onChange={(e) => setBufferSize(Number(e.target.value))}
               className={clsx("rounded-lg border border-[#2a2a38] bg-[#0d0d14] px-3 py-2 text-white focus-visible:ring-2 focus-visible:ring-blue-400", textBase)}>
               <option value={1}>1s (Niedrig)</option>
@@ -263,7 +286,7 @@ export default function SettingsPage() {
             </select>
           </SettingRow>
 
-          <SettingRow icon={HiCog6Tooth} title="Format" desc="Stream-Ausgabeformat">
+          <SettingRow icon={HiCog6Tooth} title={t("settings.format")} desc={t("settings.formatDesc")}>
             <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden">
               {(["ts", "m3u8"] as const).map((fmt) => (
                 <button key={fmt} onClick={() => setPreferredFormat(fmt)}
@@ -274,7 +297,7 @@ export default function SettingsPage() {
             </div>
           </SettingRow>
 
-          <SettingRow icon={HiCog6Tooth} title="Autoplay" desc="Automatisch abspielen beim Öffnen">
+          <SettingRow icon={HiCog6Tooth} title={t("settings.autoplay")} desc={t("settings.autoplayDesc")}>
             <Toggle on={autoplay} onToggle={() => setAutoplay(!autoplay)} />
           </SettingRow>
         </div>
@@ -283,14 +306,14 @@ export default function SettingsPage() {
       {/* Parental Controls */}
       <section className="mb-6">
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiShieldCheck className="h-4 w-4" /> Kindersicherung
+          <HiShieldCheck className="h-4 w-4" /> {t("settings.parental")}
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
-          <SettingRow icon={HiLockClosed} title="PIN-Sperre" desc={parentalPin ? "PIN ist gesetzt. Tippen zum Ändern." : "4-stellige PIN zum Sperren festlegen"}>
+          <SettingRow icon={HiLockClosed} title={t("settings.pinLock")} desc={parentalPin ? t("settings.pinSet") : t("settings.pinNotSet")}>
             <button onClick={openPinSetup} tabIndex={0}
               className={clsx("flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-2 font-medium text-amber-400 hover:bg-amber-500/20 focus-visible:ring-2 focus-visible:ring-blue-400", textSmall)}>
               <HiLockClosed className="h-4 w-4" />
-              {parentalPin ? "Ändern" : "Festlegen"}
+              {parentalPin ? t("settings.change") : t("settings.set")}
             </button>
           </SettingRow>
         </div>
@@ -299,13 +322,13 @@ export default function SettingsPage() {
       {/* Data */}
       <section className="mb-6">
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiTrash className="h-4 w-4" /> Daten
+          <HiTrash className="h-4 w-4" /> {t("settings.data")}
         </h2>
         <div className="rounded-xl glass-card">
-          <SettingRow icon={HiTrash} title="Verlauf löschen" desc="Alle zuletzt gesehenen Einträge entfernen">
+          <SettingRow icon={HiTrash} title={t("settings.clearHistory")} desc={t("settings.clearHistoryDesc")}>
             <button onClick={() => setShowConfirmClear(true)} tabIndex={0}
               className={clsx("text-red-400 hover:text-red-300 font-medium focus-visible:ring-2 focus-visible:ring-red-400 rounded px-2 py-1", textBase)}>
-              Löschen
+              {t("settings.delete")}
             </button>
           </SettingRow>
         </div>
@@ -314,15 +337,15 @@ export default function SettingsPage() {
       {/* Device Info */}
       <section className="mb-6">
         <h2 className={clsx("flex items-center gap-2 font-semibold text-gray-400 uppercase tracking-wider mb-3", textSmall)}>
-          <HiDeviceTablet className="h-4 w-4" /> Gerät
+          <HiDeviceTablet className="h-4 w-4" /> {t("settings.device")}
         </h2>
         <div className="rounded-xl glass-card divide-y divide-white/5">
           <div className="flex items-center justify-between p-4">
-            <p className={clsx("text-gray-400", textBase)}>MAC-Adresse</p>
+            <p className={clsx("text-gray-400", textBase)}>{t("settings.macAddress")}</p>
             <p className={clsx("text-white font-mono font-bold", textBase)}>{macAddress || "N/A"}</p>
           </div>
           <div className="flex items-center justify-between p-4">
-            <p className={clsx("text-gray-400", textBase)}>App-Version</p>
+            <p className={clsx("text-gray-400", textBase)}>{t("settings.appVersion")}</p>
             <p className={clsx("text-white", textBase)}>IPTV TREX v1.0.0</p>
           </div>
         </div>
@@ -331,7 +354,7 @@ export default function SettingsPage() {
       {/* Logout */}
       <button onClick={() => setShowConfirmLogout(true)} tabIndex={0}
         className={clsx("w-full flex items-center justify-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 py-4 font-medium text-red-400 hover:bg-red-500/20 transition-colors mb-8 focus-visible:ring-4 focus-visible:ring-red-400", textBase)}>
-        <HiArrowLeftOnRectangle className="h-5 w-5" /> Abmelden
+        <HiArrowLeftOnRectangle className="h-5 w-5" /> {t("settings.logout")}
       </button>
 
       {/* Dialogs */}
@@ -341,11 +364,11 @@ export default function SettingsPage() {
       {showConfirmLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl glass-panel p-6">
-            <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Abmelden?</h3>
-            <p className={clsx("text-gray-400 mb-6", textBase)}>Du musst dich erneut anmelden.</p>
+            <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>{t("settings.logoutConfirm")}</h3>
+            <p className={clsx("text-gray-400 mb-6", textBase)}>{t("settings.logoutDesc")}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmLogout(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">Abbrechen</button>
-              <button onClick={() => { logout(); router.replace("/login"); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">Abmelden</button>
+              <button onClick={() => setShowConfirmLogout(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">{t("settings.cancel")}</button>
+              <button onClick={() => { logout(); router.replace("/login"); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">{t("settings.logout")}</button>
             </div>
           </div>
         </div>
@@ -355,10 +378,10 @@ export default function SettingsPage() {
       {editingPlaylist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl glass-panel p-6">
-            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>Playlist bearbeiten</h3>
+            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>{t("settings.edit")} Playlist</h3>
             <div className="space-y-4">
               <div>
-                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Name</label>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.name")}</label>
                 <input
                   type="text"
                   value={editName}
@@ -368,7 +391,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Server URL</label>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.serverUrl")}</label>
                 <input
                   type="url"
                   value={editUrl}
@@ -380,7 +403,7 @@ export default function SettingsPage() {
               {(editUser || editPass || (credentials && "serverUrl" in (credentials || {}))) && (
                 <>
                   <div>
-                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Benutzername</label>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.username")}</label>
                     <input
                       type="text"
                       value={editUser}
@@ -390,7 +413,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Passwort</label>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.password")}</label>
                     <input
                       type="text"
                       value={editPass}
@@ -406,7 +429,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => setEditingPlaylist(null)}
                 className="flex-1 rounded-xl bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38] transition-colors"
-              >Abbrechen</button>
+              >{t("settings.cancel")}</button>
               <button
                 onClick={() => {
                   if (editingPlaylist === "__active__") {
@@ -423,7 +446,7 @@ export default function SettingsPage() {
                   }
                 }}
                 className="flex-1 rounded-xl bg-amber-600 py-3 font-medium text-white hover:bg-amber-500 transition-colors"
-              >Speichern</button>
+              >{t("settings.save")}</button>
             </div>
           </div>
         </div>
@@ -433,32 +456,32 @@ export default function SettingsPage() {
       {showAddPlaylist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl glass-panel p-6">
-            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>Neue Playlist hinzufügen</h3>
+            <h3 className={clsx("font-semibold text-white mb-4", isLarge ? "text-xl" : "text-lg")}>{t("settings.newPlaylist")}</h3>
 
             {/* Type selector */}
             <div className="flex rounded-lg border border-[#2a2a38] overflow-hidden mb-4">
               <button onClick={() => setAddType("xtream")}
                 className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
                   addType === "xtream" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white")}>
-                Xtream Codes
+                {t("settings.xtreamCodes")}
               </button>
               <button onClick={() => setAddType("m3u")}
                 className={clsx("flex-1 px-4 py-2.5 font-medium transition-colors", textBase,
                   addType === "m3u" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white")}>
-                M3U URL
+                {t("settings.m3uUrl")}
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className={clsx("block text-gray-400 mb-1", textSmall)}>Name</label>
+                <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.name")}</label>
                 <input type="text" value={addName} onChange={(e) => setAddName(e.target.value)}
                   className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                   placeholder="z.B. Mein IPTV" />
               </div>
               <div>
                 <label className={clsx("block text-gray-400 mb-1", textSmall)}>
-                  {addType === "xtream" ? "Server URL" : "M3U URL"}
+                  {addType === "xtream" ? t("settings.serverUrl") : t("settings.m3uUrl")}
                 </label>
                 <input type="url" value={addUrl} onChange={(e) => setAddUrl(e.target.value)}
                   className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono", textSmall)}
@@ -467,13 +490,13 @@ export default function SettingsPage() {
               {addType === "xtream" && (
                 <>
                   <div>
-                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Benutzername</label>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.username")}</label>
                     <input type="text" value={addUser} onChange={(e) => setAddUser(e.target.value)}
                       className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Username" />
                   </div>
                   <div>
-                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>Passwort</label>
+                    <label className={clsx("block text-gray-400 mb-1", textSmall)}>{t("settings.password")}</label>
                     <input type="text" value={addPass} onChange={(e) => setAddPass(e.target.value)}
                       className={clsx("w-full rounded-lg bg-[#0d0d14] border border-[#2a2a38] px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none", textBase)}
                       placeholder="Password" />
@@ -484,7 +507,7 @@ export default function SettingsPage() {
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddPlaylist(false)}
                 className="flex-1 rounded-xl bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38] transition-colors">
-                Abbrechen
+                {t("settings.cancel")}
               </button>
               <button
                 onClick={() => {
@@ -506,7 +529,7 @@ export default function SettingsPage() {
                   window.location.reload();
                 }}
                 className="flex-1 rounded-xl bg-green-600 py-3 font-medium text-white hover:bg-green-500 transition-colors">
-                Hinzufügen & Aktivieren
+                {t("settings.addAndActivate")}
               </button>
             </div>
           </div>
@@ -516,11 +539,11 @@ export default function SettingsPage() {
       {showConfirmClear && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl glass-panel p-6">
-            <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>Verlauf löschen?</h3>
-            <p className={clsx("text-gray-400 mb-6", textBase)}>Alle Einträge werden unwiderruflich gelöscht.</p>
+            <h3 className={clsx("font-semibold text-white mb-2", isLarge ? "text-xl" : "text-lg")}>{t("settings.deleteConfirm")}</h3>
+            <p className={clsx("text-gray-400 mb-6", textBase)}>{t("settings.deleteDesc")}</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmClear(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">Abbrechen</button>
-              <button onClick={() => { clearRecent(); setShowConfirmClear(false); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">Löschen</button>
+              <button onClick={() => setShowConfirmClear(false)} className="flex-1 rounded-lg bg-[#22222e] py-3 font-medium text-gray-300 hover:bg-[#2a2a38]">{t("settings.cancel")}</button>
+              <button onClick={() => { clearRecent(); setShowConfirmClear(false); }} className="flex-1 rounded-lg bg-red-500 py-3 font-medium text-white hover:bg-red-400">{t("settings.delete")}</button>
             </div>
           </div>
         </div>

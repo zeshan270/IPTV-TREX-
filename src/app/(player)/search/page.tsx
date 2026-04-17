@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { useAuthStore, useFavoritesStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import {
   fetchLiveStreams,
   fetchVodStreams,
@@ -27,6 +28,7 @@ interface SearchResults {
 
 export default function SearchPage() {
   const router = useRouter();
+  const t = useT();
   const credentials = useAuthStore((s) => s.credentials);
   const { toggle, isFavorite } = useFavoritesStore();
 
@@ -108,12 +110,12 @@ export default function SearchPage() {
   const tabs: { key: SearchTab; label: string; count: number }[] = [
     {
       key: "all",
-      label: "All",
+      label: t("favorites.all"),
       count: totalResults,
     },
-    { key: "live", label: "Live", count: results.live.length },
-    { key: "movies", label: "Movies", count: results.movies.length },
-    { key: "series", label: "Series", count: results.series.length },
+    { key: "live", label: t("nav.liveTV"), count: results.live.length },
+    { key: "movies", label: t("nav.movies"), count: results.movies.length },
+    { key: "series", label: t("nav.series"), count: results.series.length },
   ];
 
   const showLive = tab === "all" || tab === "live";
@@ -125,7 +127,7 @@ export default function SearchPage() {
       {/* Header */}
       <div className="p-4 md:p-6 border-b border-[#2a2a38]">
         <SearchBar
-          placeholder="Search across all content..."
+          placeholder={t("search.placeholder")}
           onSearch={handleSearch}
           className="max-w-xl mb-4"
           autoFocus
@@ -155,7 +157,7 @@ export default function SearchPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Searching..." />
+            <LoadingSpinner text={t("common.loading")} />
           </div>
         ) : !hasSearched ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -163,16 +165,16 @@ export default function SearchPage() {
               <HiMagnifyingGlass className="h-8 w-8 text-amber-400" />
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
-              Search Content
+              {t("nav.search")}
             </h3>
             <p className="text-sm text-gray-400 max-w-sm">
-              Search across live channels, movies, and series
+              {t("search.placeholder")}
             </p>
           </div>
         ) : totalResults === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-gray-500">
-              No results found for &quot;{query}&quot;
+              {t("search.noResults")} &quot;{query}&quot;
             </p>
           </div>
         ) : (
@@ -181,7 +183,7 @@ export default function SearchPage() {
             {showLive && results.live.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Live Channels ({results.live.length})
+                  {t("nav.liveTV")} ({results.live.length})
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {results.live.map((ch) => (
@@ -215,7 +217,7 @@ export default function SearchPage() {
             {showMovies && results.movies.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Movies ({results.movies.length})
+                  {t("nav.movies")} ({results.movies.length})
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {results.movies.map((movie) => (
@@ -256,7 +258,7 @@ export default function SearchPage() {
             {showSeries && results.series.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Series ({results.series.length})
+                  {t("nav.series")} ({results.series.length})
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {results.series.map((s) => (

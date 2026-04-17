@@ -186,3 +186,5 @@ body {
 .animate-ping-once {
   animation: pingOnce 0.5s ease-out forwards;
 }
+
+@import "../styles/tv-focus.css";

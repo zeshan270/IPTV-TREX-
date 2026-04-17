@@ -5,20 +5,22 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { HiHeart, HiStar, HiPlay, HiTrash } from "react-icons/hi2";
 import { useFavoritesStore, useSettingsStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
 type FilterTab = "all" | "live" | "movie" | "series";
-
-const tabs: { key: FilterTab; label: string; icon: string }[] = [
-  { key: "all", label: "Alle", icon: "📺" },
-  { key: "live", label: "Live TV", icon: "📡" },
-  { key: "movie", label: "Filme", icon: "🎬" },
-  { key: "series", label: "Serien", icon: "🎭" },
-];
 
 export default function FavoritesPage() {
   const router = useRouter();
   const { favorites, toggle, setChannelNumber, isFavorite } = useFavoritesStore();
   const { showChannelNumbers, fontSize } = useSettingsStore();
+  const t = useT();
+
+  const tabs: { key: FilterTab; label: string; icon: string }[] = [
+    { key: "all", label: t("favorites.all"), icon: "📺" },
+    { key: "live", label: t("nav.liveTV"), icon: "📡" },
+    { key: "movie", label: t("nav.movies"), icon: "🎬" },
+    { key: "series", label: t("nav.series"), icon: "🎭" },
+  ];
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [numberInput, setNumberInput] = useState("");
   const [showNumberOverlay, setShowNumberOverlay] = useState(false);
@@ -103,7 +105,7 @@ export default function FavoritesPage() {
       {/* Number input overlay */}
       {showNumberOverlay && (
         <div className="fixed top-8 right-8 z-50 bg-yellow-500/90 text-black px-8 py-4 rounded-2xl shadow-2xl">
-          <p className="text-sm font-bold mb-1">Kanal Nr.</p>
+          <p className="text-sm font-bold mb-1">{t("favorites.channel")} Nr.</p>
           <p className="text-5xl font-black tabular-nums">{numberInput || "..."}</p>
         </div>
       )}
@@ -116,9 +118,9 @@ export default function FavoritesPage() {
           </div>
           <div>
             <h1 className={clsx("font-black text-white", isLarge ? "text-3xl" : "text-2xl")}>
-              ⭐ Favoriten
+              ⭐ {t("favorites.title")}
             </h1>
-            <p className="text-sm text-yellow-400/80">{favorites.length} gespeichert • Zahlentasten zum Umschalten</p>
+            <p className="text-sm text-yellow-400/80">{favorites.length} {t("favorites.saved")} • {t("favorites.numberKeys")}</p>
           </div>
         </div>
 
@@ -160,10 +162,10 @@ export default function FavoritesPage() {
               <HiHeart className="h-12 w-12 text-yellow-400" />
             </div>
             <h3 className={clsx("font-black text-white mb-3", isLarge ? "text-2xl" : "text-xl")}>
-              Noch keine Favoriten
+              {t("favorites.noFavorites")}
             </h3>
             <p className={clsx("text-gray-400 max-w-md", isLarge ? "text-lg" : "text-base")}>
-              Füge deine Lieblingssender, Filme und Serien hinzu, indem du das ❤️ Herz-Symbol antippst.
+              {t("favorites.noFavoritesDesc")}
             </p>
           </div>
         ) : (

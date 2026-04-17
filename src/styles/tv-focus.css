@@ -1,0 +1,34 @@
+/* ==================== Android TV / D-Pad Focus Styles ==================== */
+
+/* Enhanced focus ring for TV navigation */
+@media (hover: none) and (pointer: coarse), (any-hover: none) {
+  /* TV environment: no hover, so focus must be very visible */
+  *:focus-visible {
+    outline: none !important;
+    ring: none !important;
+  }
+}
+
+/* TV-specific focus class */
+[data-focusable]:focus-visible,
+[data-focusable]:focus {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.2), 0 0 20px rgba(245, 158, 11, 0.15);
+  transform: scale(1.02);
+  transition: outline 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+  position: relative;
+}
+
+/* Smooth transition when losing focus */
+[data-focusable] {
+  transition: outline 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Larger click targets for TV */
+@media (min-width: 1280px) and (hover: none) {
+  [data-focusable] {
+    min-height: 48px;
+  }
+}

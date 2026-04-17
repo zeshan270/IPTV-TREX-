@@ -11,6 +11,7 @@ import {
   HiStar,
 } from "react-icons/hi2";
 import { useAuthStore, useFavoritesStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import {
   fetchSeriesCategories,
   fetchSeries,
@@ -25,6 +26,7 @@ import ErrorDisplay from "@/components/ui/ErrorDisplay";
 
 export default function SeriesPage() {
   const router = useRouter();
+  const t = useT();
   const credentials = useAuthStore((s) => s.credentials);
   const { toggle, isFavorite } = useFavoritesStore();
 
@@ -118,7 +120,7 @@ export default function SeriesPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading Series..." />
+        <LoadingSpinner size="lg" text={t("series.loading")} />
       </div>
     );
   }
@@ -136,7 +138,7 @@ export default function SeriesPage() {
       {/* Top bar */}
       <div className="p-4 border-b border-[#2a2a38]">
         <SearchBar
-          placeholder="Search series..."
+          placeholder={t("search.placeholder")}
           onSearch={handleSearch}
           className="max-w-md mb-4"
         />
@@ -150,7 +152,7 @@ export default function SeriesPage() {
                 : "bg-[#181820] text-gray-400 border border-[#2a2a38] hover:border-amber-500/30"
             )}
           >
-            All
+            {t("favorites.all")}
           </button>
           {categories.map((cat) => (
             <button
@@ -174,17 +176,17 @@ export default function SeriesPage() {
         {!selectedCategory && !searchQuery ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiRectangleStack className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">Kategorie auswählen</p>
-            <p className="text-sm text-gray-500 mt-1">Wähle eine Kategorie um Serien zu laden</p>
+            <p className="text-lg text-gray-400">{t("live.selectCategory")}</p>
+            <p className="text-sm text-gray-500 mt-1">{t("live.selectCategoryDesc")}</p>
           </div>
         ) : loadingSeries ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Lade Serien..." />
+            <LoadingSpinner text={t("series.loading")} />
           </div>
         ) : filteredSeries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiRectangleStack className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">Keine Serien gefunden</p>
+            <p className="text-lg text-gray-400">{t("series.noEpisodes")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -270,7 +272,7 @@ export default function SeriesPage() {
               )}
 
               {loadingDetail ? (
-                <LoadingSpinner text="Loading episodes..." className="py-8" />
+                <LoadingSpinner text={t("series.loading")} className="py-8" />
               ) : seriesDetail && seriesDetail.episodes ? (
                 <>
                   {/* Season tabs */}
@@ -288,7 +290,7 @@ export default function SeriesPage() {
                               : "bg-[#22222e] text-gray-400 hover:bg-[#2a2a38]"
                           )}
                         >
-                          Season {season}
+                          {t("series.season")} {season}
                         </button>
                       ))}
                   </div>
@@ -322,7 +324,7 @@ export default function SeriesPage() {
                 </>
               ) : (
                 <p className="text-sm text-gray-500 text-center py-4">
-                  No episode information available
+                  {t("series.noEpisodes")}
                 </p>
               )}
             </div>

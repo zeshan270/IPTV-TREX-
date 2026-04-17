@@ -17,16 +17,17 @@ import {
   HiTableCells,
 } from "react-icons/hi2";
 import { useAuthStore, useSettingsStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
 const navItems = [
-  { href: "/", label: "Home", icon: HiHome, isFavorite: false },
-  { href: "/favorites", label: "Favoriten", icon: HiStar, isFavorite: true },
-  { href: "/live", label: "Live TV", icon: HiTv, isFavorite: false },
-  { href: "/epg", label: "TV Guide", icon: HiTableCells, isFavorite: false },
-  { href: "/movies", label: "Filme", icon: HiFilm, isFavorite: false },
-  { href: "/series", label: "Serien", icon: HiRectangleStack, isFavorite: false },
-  { href: "/search", label: "Suche", icon: HiMagnifyingGlass, isFavorite: false },
-  { href: "/settings", label: "Einstellungen", icon: HiCog6Tooth, isFavorite: false },
+  { href: "/", labelKey: "nav.home" as const, icon: HiHome, isFavorite: false },
+  { href: "/favorites", labelKey: "nav.favorites" as const, icon: HiStar, isFavorite: true },
+  { href: "/live", labelKey: "nav.liveTV" as const, icon: HiTv, isFavorite: false },
+  { href: "/epg", labelKey: "nav.tvGuide" as const, icon: HiTableCells, isFavorite: false },
+  { href: "/movies", labelKey: "nav.movies" as const, icon: HiFilm, isFavorite: false },
+  { href: "/series", labelKey: "nav.series" as const, icon: HiRectangleStack, isFavorite: false },
+  { href: "/search", labelKey: "nav.search" as const, icon: HiMagnifyingGlass, isFavorite: false },
+  { href: "/settings", labelKey: "nav.settings" as const, icon: HiCog6Tooth, isFavorite: false },
 ];
 
 export default function PlayerLayout({
@@ -40,6 +41,7 @@ export default function PlayerLayout({
   const credentials = useAuthStore((s) => s.credentials);
   const playlistName = useAuthStore((s) => s.playlistName);
   const { fontSize, remoteControlMode } = useSettingsStore();
+  const t = useT();
   const navRef = useRef<HTMLUListElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [exitToast, setExitToast] = useState(false);
@@ -137,6 +139,7 @@ export default function PlayerLayout({
       <Link
         href={item.href}
         tabIndex={0}
+        data-focusable
         onKeyDown={(e) => handleNavKeyDown(e, index)}
         onClick={() => setMenuOpen(false)}
         className={clsx(
@@ -160,7 +163,7 @@ export default function PlayerLayout({
         )}
       >
         <item.icon className={clsx("flex-shrink-0", item.isFavorite ? "h-6 w-6" : "h-5 w-5", item.isFavorite ? (isActive ? "text-yellow-400" : "text-yellow-400/80") : isActive ? "text-amber-400" : "")} />
-        <span>{item.label}</span>
+        <span>{t(item.labelKey)}</span>
         {isActive && !item.isFavorite && <div className="ml-auto h-2 w-2 rounded-full bg-amber-400" />}
         {item.isFavorite && isActive && <div className="ml-auto h-2 w-2 rounded-full bg-yellow-400" />}
       </Link>
@@ -196,12 +199,12 @@ export default function PlayerLayout({
         <div className="border-t border-[#2a2a38] p-3 lg:p-4 space-y-2">
           {(playlistName || serverHost) && (
             <div className="rounded-lg bg-amber-500/10 p-2 lg:p-3">
-              <p className="hidden xl:block text-[10px] uppercase tracking-wider text-amber-400 mb-1">Aktive Playlist</p>
+              <p className="hidden xl:block text-[10px] uppercase tracking-wider text-amber-400 mb-1">{t("settings.activePlaylist")}</p>
               <p className="text-xs text-amber-300 font-medium text-center lg:text-left truncate">{playlistName || serverHost}</p>
             </div>
           )}
           <div className="rounded-lg bg-[#181820] p-2 lg:p-3">
-            <p className="hidden xl:block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Geräte-MAC</p>
+            <p className="hidden xl:block text-[10px] uppercase tracking-wider text-gray-500 mb-1">{t("settings.macAddress")}</p>
             <p className="text-[10px] lg:text-xs text-gray-400 font-mono text-center lg:text-left truncate">{macAddress || "00:00:00:00:00:00"}</p>
           </div>
         </div>
@@ -246,12 +249,12 @@ export default function PlayerLayout({
             <div className="border-t border-[#2a2a38] p-4 space-y-2">
               {(playlistName || serverHost) && (
                 <div className="glass-card rounded-lg p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-amber-400 mb-1">Aktive Playlist</p>
+                  <p className="text-[10px] uppercase tracking-wider text-amber-400 mb-1">{t("settings.activePlaylist")}</p>
                   <p className="text-xs text-amber-300 font-medium truncate">{playlistName || serverHost}</p>
                 </div>
               )}
               <div className="glass-card rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Geräte-MAC</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{t("settings.macAddress")}</p>
                 <p className="text-[10px] text-gray-400 font-mono truncate">{macAddress || "00:00:00:00:00:00"}</p>
               </div>
             </div>
@@ -291,7 +294,7 @@ export default function PlayerLayout({
       {exitToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="rounded-xl bg-[#181820] border border-[#2a2a38] px-6 py-3 shadow-2xl">
-            <p className="text-sm text-gray-300 whitespace-nowrap">Nochmal drücken zum Beenden</p>
+            <p className="text-sm text-gray-300 whitespace-nowrap">{t("common.pressAgainToExit")}</p>
           </div>
         </div>
       )}

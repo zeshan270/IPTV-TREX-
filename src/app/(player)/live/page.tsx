@@ -13,6 +13,7 @@ import {
   HiViewColumns,
 } from "react-icons/hi2";
 import { useAuthStore, usePlayerStore, useFavoritesStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import {
   fetchLiveCategories,
   fetchLiveStreams,
@@ -66,6 +67,7 @@ interface CountryGroup {
 
 export default function LiveTVPage() {
   const router = useRouter();
+  const t = useT();
   const credentials = useAuthStore((s) => s.credentials);
   const setPlaylist = usePlayerStore((s) => s.setPlaylist);
   const setChannel = usePlayerStore((s) => s.setChannel);
@@ -199,10 +201,10 @@ export default function LiveTVPage() {
       setPlaylist(unique);
       lsSet(cacheKey, unique);
     } catch (err) {
-      setError("Fehler beim Laden aller Kanäle");
+      setError(t("common.error"));
     }
     setLoadingAll(false);
-  }, [creds, categories, allChannels.length, setPlaylist]);
+  }, [creds, categories, allChannels.length, setPlaylist, t]);
 
   // Extract country info from category name using countries.ts
   function extractCountry(categoryName: string): { countryCode: string; subCategory: string; info: CountryInfo } {
@@ -375,7 +377,7 @@ export default function LiveTVPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <LoadingSpinner size="lg" text="Lade Live TV..." />
+        <LoadingSpinner size="lg" text={t("live.loading")} />
       </div>
     );
   }
@@ -396,7 +398,7 @@ export default function LiveTVPage() {
       <div className="p-4 border-b border-[#2a2a38] space-y-3">
         <div className="flex items-center gap-2">
           <SearchBar
-            placeholder="Kanäle suchen..."
+            placeholder={t("live.searchChannels")}
             onSearch={handleSearch}
             className="flex-1 max-w-md"
           />
@@ -415,7 +417,7 @@ export default function LiveTVPage() {
             )}
           >
             <HiStar className="h-5 w-5" />
-            <span className="hidden sm:inline">Favoriten</span>
+            <span className="hidden sm:inline">{t("live.favorites")}</span>
           </button>
         </div>
 
@@ -438,7 +440,7 @@ export default function LiveTVPage() {
               )}
             >
               <HiViewColumns className="h-4 w-4" />
-              Alle Kanäle
+              {t("live.allChannels")}
             </button>
 
             {/* All Countries button */}
@@ -454,7 +456,7 @@ export default function LiveTVPage() {
               )}
             >
               <HiGlobeAlt className="h-4 w-4" />
-              Länder
+              {t("live.countries")}
             </button>
 
             {countryGroups.map((group) => (
@@ -518,32 +520,32 @@ export default function LiveTVPage() {
       <div className="flex-1 overflow-y-auto p-4">
         {loadingAll ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Lade alle Kanäle..." />
+            <LoadingSpinner text={t("live.loadingAll")} />
           </div>
         ) : needsCategory ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiSignal className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">Kategorie auswählen</p>
-            <p className="text-sm text-gray-500 mt-1">Wähle ein Land und eine Kategorie um Kanäle zu laden</p>
+            <p className="text-lg text-gray-400">{t("live.selectCategory")}</p>
+            <p className="text-sm text-gray-500 mt-1">{t("live.selectCategoryDesc")}</p>
           </div>
         ) : loadingChannels ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Lade Kanäle..." />
+            <LoadingSpinner text={t("common.loading")} />
           </div>
         ) : filteredChannels.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiSignal className="h-16 w-16 text-gray-600 mb-4" />
             <p className="text-lg text-gray-400">
               {showFavoritesOnly
-                ? "Noch keine Favoriten. Tippe auf das Herz um Kanäle hinzuzufügen!"
-                : "Keine Kanäle gefunden"}
+                ? t("live.noFavorites")
+                : t("live.noChannels")}
             </p>
           </div>
         ) : (
           <>
             {/* Channel count */}
             <p className="text-xs text-gray-500 mb-3">
-              {filteredChannels.length} Kanäle
+              {filteredChannels.length} {t("live.channels")}
             </p>
             <div
               ref={gridRef}

@@ -385,6 +385,33 @@ export async function fetchFullEpg(
 }
 
 /**
+ * Build a Catchup/Timeshift URL for watching archived programs.
+ * Xtream Codes API format: /streaming/timeshift.php?username=X&password=Y&stream=ID&start=YYYY-MM-DD:HH-MM&duration=MINUTES
+ */
+export function buildCatchupUrl(
+  creds: XtreamCredentials,
+  streamId: number,
+  startTimestamp: number,
+  endTimestamp: number
+): string {
+  const base = upgradeHttps(buildBaseUrl(creds));
+  const u = creds.username.trim();
+  const p = creds.password.trim();
+  const start = new Date(startTimestamp);
+  const durationMin = Math.ceil((endTimestamp - startTimestamp) / 60000);
+
+  // Format: YYYY-MM-DD:HH-MM
+  const y = start.getUTCFullYear();
+  const mo = String(start.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(start.getUTCDate()).padStart(2, "0");
+  const h = String(start.getUTCHours()).padStart(2, "0");
+  const mi = String(start.getUTCMinutes()).padStart(2, "0");
+  const startStr = `${y}-${mo}-${d}:${h}-${mi}`;
+
+  return `${base}/streaming/timeshift.php?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&stream=${streamId}&start=${startStr}&duration=${durationMin}`;
+}
+
+/**
  * Fetch full movie details (plot, cast, trailer, etc.)
  */
 const CACHE_TTL_VOD_INFO = 30 * 60 * 1000; // 30 minutes

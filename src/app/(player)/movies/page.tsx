@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { HiFilm, HiXMark, HiPlay, HiStar, HiGlobeAlt } from "react-icons/hi2";
 import { useAuthStore, useFavoritesStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import { fetchVodCategories, fetchVodStreams, buildVodUrl } from "@/lib/api-client";
 import type { Category, Movie } from "@/types";
 import SearchBar from "@/components/ui/SearchBar";
@@ -91,6 +92,7 @@ function extractCountry(categoryName: string): { countryCode: string; subCategor
 
 export default function MoviesPage() {
   const router = useRouter();
+  const t = useT();
   const credentials = useAuthStore((s) => s.credentials);
   const { toggle, isFavorite } = useFavoritesStore();
 
@@ -204,7 +206,7 @@ export default function MoviesPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading Movies..." />
+        <LoadingSpinner size="lg" text={t("movies.loading")} />
       </div>
     );
   }
@@ -222,7 +224,7 @@ export default function MoviesPage() {
       {/* Top bar */}
       <div className="p-4 border-b border-[#2a2a38] space-y-3">
         <SearchBar
-          placeholder="Search movies..."
+          placeholder={t("search.placeholder")}
           onSearch={handleSearch}
           className="max-w-md"
         />
@@ -241,7 +243,7 @@ export default function MoviesPage() {
             )}
           >
             <HiGlobeAlt className="h-5 w-5" />
-            All
+            {t("favorites.all")}
           </button>
           {countryGroups.map((group) => (
             <button
@@ -276,7 +278,7 @@ export default function MoviesPage() {
                   : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
-              All
+              {t("favorites.all")}
             </button>
             {countryCategories.map((cat) => (
               <button
@@ -311,7 +313,7 @@ export default function MoviesPage() {
                   : "bg-[#181820] text-gray-400 border-2 border-[#2a2a38] hover:border-amber-500/30"
               )}
             >
-              All
+              {t("favorites.all")}
             </button>
             {categories.map((cat) => (
               <button
@@ -338,17 +340,17 @@ export default function MoviesPage() {
         {!selectedCategory && !searchQuery ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiFilm className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">Kategorie auswählen</p>
-            <p className="text-sm text-gray-500 mt-1">Wähle eine Kategorie um Filme zu laden</p>
+            <p className="text-lg text-gray-400">{t("live.selectCategory")}</p>
+            <p className="text-sm text-gray-500 mt-1">{t("live.selectCategoryDesc")}</p>
           </div>
         ) : loadingMovies ? (
           <div className="flex items-center justify-center py-16">
-            <LoadingSpinner text="Lade Filme..." />
+            <LoadingSpinner text={t("movies.loading")} />
           </div>
         ) : filteredMovies.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiFilm className="h-16 w-16 text-gray-600 mb-4" />
-            <p className="text-lg text-gray-400">Keine Filme gefunden</p>
+            <p className="text-lg text-gray-400">{t("movies.notFound")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -443,7 +445,7 @@ export default function MoviesPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-4 text-lg font-semibold text-white hover:from-amber-500 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/20 mb-5 focus-visible:ring-4 focus-visible:ring-blue-400 focus-visible:outline-none min-h-[56px]"
               >
                 <HiPlay className="h-6 w-6" />
-                Play Movie
+                {t("movies.play")}
               </button>
 
               {/* Favorite toggle */}
@@ -467,7 +469,7 @@ export default function MoviesPage() {
                 )}
               >
                 <HiStar className="h-5 w-5" />
-                {isFavorite(String(selectedMovie.streamId)) ? "Remove from Favorites" : "Add to Favorites"}
+                {t("movies.favorite")}
               </button>
 
               {/* Plot */}
@@ -476,6 +478,7 @@ export default function MoviesPage() {
                   <h3 className="text-sm text-gray-500 uppercase tracking-wider mb-2">
                     Plot
                   </h3>
+
                   <p className="text-base text-gray-300 leading-relaxed">
                     {selectedMovie.plot}
                   </p>
@@ -486,7 +489,7 @@ export default function MoviesPage() {
               {selectedMovie.cast && (
                 <div className="mb-5">
                   <h3 className="text-sm text-gray-500 uppercase tracking-wider mb-2">
-                    Cast
+                    {t("movies.cast")}
                   </h3>
                   <p className="text-base text-gray-400">{selectedMovie.cast}</p>
                 </div>
@@ -496,7 +499,7 @@ export default function MoviesPage() {
               {selectedMovie.director && (
                 <div>
                   <h3 className="text-sm text-gray-500 uppercase tracking-wider mb-2">
-                    Director
+                    {t("movies.director")}
                   </h3>
                   <p className="text-base text-gray-400">
                     {selectedMovie.director}
